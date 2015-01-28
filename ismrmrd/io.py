@@ -11,10 +11,7 @@ class Dataset(object):
             self.__file = h5py.File(filename,'r+')
 
         # Open/Create the toplevel dataset group
-        if dataset_name in self.__file:
-            self.__dset = self.__file[dataset_name]
-        else:
-            self.__file.create_group(dataset_name)
+        self.__dset = self.__file.require_group(dataset_name)
             
     def close(self):
         if self.__file.fid:
@@ -33,6 +30,10 @@ class Dataset(object):
                 raise
         else:
             raise LookupError("XML header not found in the dataset.")
+
+    def write_xml_header(self,xmlstring):
+        dset = self.__dset.require_dataset('xml',shape=(1,), dtype=h5py.special_dtype(vlen=str))
+        dset[0] = xmlstring
 
     def read_acquisition(self, acqnum):
         
