@@ -81,11 +81,11 @@ class AcquisitionHeader(ctypes.Structure):
                 ("encoding_space_ref", ctypes.c_uint16),
                 ("trajectory_dimensions", ctypes.c_uint16),
                 ("sample_time_us", ctypes.c_float),
-                ("position", ctypes.c_float * 3),
-                ("read_dir", ctypes.c_float * 3),
-                ("phase_dir", ctypes.c_float * 3),
-                ("slice_dir", ctypes.c_float * 3),
-                ("patient_table_position", ctypes.c_float * 3),
+                ("position", ctypes.c_float * POSITION_LENGTH),
+                ("read_dir", ctypes.c_float * DIRECTION_LENGTH),
+                ("phase_dir", ctypes.c_float * DIRECTION_LENGTH),
+                ("slice_dir", ctypes.c_float * DIRECTION_LENGTH),
+                ("patient_table_position", ctypes.c_float * POSITION_LENGTH),
                 ("idx", EncodingCounters),
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),]
@@ -117,8 +117,8 @@ class Acquisition(object):
         self.__head.version = value
 
     def resize(self, number_of_samples = 0, active_channels = 1, trajectory_dimensions = 0):
-        self.__data.resize([active_channels, number_of_samples])
-        self.__traj.resize([number_of_samples, trajectory_dimensions])
+        self.__data = np.resize(self.__data, (active_channels, number_of_samples))
+        self.__traj = np.resize(self.__traj, (number_of_samples, trajectory_dimensions))
         self.__head.number_of_samples = number_of_samples
         self.__head.active_channels  = active_channels 
         self.__head.trajectory_dimensions = trajectory_dimensions
@@ -126,6 +126,10 @@ class Acquisition(object):
     def getHead(self):
         return copy.deepcopy(self.__head)
 
+    def setHead(self, hdr):
+        self.__head = copy.deepcopy(hdr)
+        self.resize(hdr.number_of_samples, hdr.active_channels, hdr.trajectory_dimensions)
+    
     @property
     def data(self):
         return self.__data.view()
