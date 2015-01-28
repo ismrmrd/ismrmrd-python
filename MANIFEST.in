@@ -1,3 +1,2 @@
-cismrmrd.pxd
-ismrmrd.pyx
+ismrmrd.py
 setup.py
