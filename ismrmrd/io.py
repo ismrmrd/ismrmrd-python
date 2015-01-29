@@ -73,66 +73,63 @@ class Dataset(object):
 
     def read_acquisition(self, acqnum):
         
-        # create an acquisition header and fill it
-        hdr = ismrmrd.AcquisitionHeader()
-        h5hdr = self.__dset['data'][acqnum]['head']
-        hdr.version = h5hdr['version']
-        hdr.flags = h5hdr['flags']
-        hdr.measurement_uid =  h5hdr['measurement_uid']
-        hdr.scan_counter = h5hdr['scan_counter']
-        hdr.acquisition_time_stamp =  h5hdr['acquisition_time_stamp']
-        for n in range(ismrmrd.PHYS_STAMPS):
-            hdr.physiology_time_stamp[n] =  h5hdr['physiology_time_stamp'][n]
-        hdr.number_of_samples =  h5hdr['number_of_samples']
-        hdr.available_channels =  h5hdr['available_channels']
-        hdr.active_channels =  h5hdr['active_channels']
-        for n in range(ismrmrd.CHANNEL_MASKS):
-            hdr.channel_mask[n] =  h5hdr['channel_mask'][n]
-        hdr.discard_pre =  h5hdr['discard_pre']
-        hdr.discard_post =  h5hdr['discard_post']
-        hdr.center_sample =  h5hdr['center_sample']
-        hdr.encoding_space_ref =  h5hdr['encoding_space_ref']
-        hdr.trajectory_dimensions =  h5hdr['trajectory_dimensions']
-        hdr.sample_time_us =  h5hdr['sample_time_us']
-        for n in range(ismrmrd.POSITION_LENGTH):
-            hdr.position[n] =  h5hdr['position'][n]
-        for n in range(ismrmrd.DIRECTION_LENGTH):
-            hdr.read_dir[n] =  h5hdr['read_dir'][n]
-        for n in range(ismrmrd.DIRECTION_LENGTH):
-            hdr.phase_dir[n] =  h5hdr['phase_dir'][n]
-        for n in range(ismrmrd.DIRECTION_LENGTH):
-            hdr.slice_dir[n] =  h5hdr['slice_dir'][n]
-        for n in range(ismrmrd.POSITION_LENGTH):
-            hdr.patient_table_position[n] =  h5hdr['patient_table_position'][n]
-        hdr.idx.kspace_encode_step_1 =  h5hdr['idx']['kspace_encode_step_1']
-        hdr.idx.kspace_encode_step_2 =  h5hdr['idx']['kspace_encode_step_2']
-        hdr.idx.average =  h5hdr['idx']['average']
-        hdr.idx.slice =  h5hdr['idx']['slice']
-        hdr.idx.contrast =  h5hdr['idx']['contrast']
-        hdr.idx.phase =  h5hdr['idx']['phase']
-        hdr.idx.repetition =  h5hdr['idx']['repetition']
-        hdr.idx.set =  h5hdr['idx']['set']
-        hdr.idx.segment =  h5hdr['idx']['segment']
-        for n in range(ismrmrd.USER_INTS):
-            hdr.idx.user[n] =  h5hdr['idx']['user'][n]
-        for n in range(ismrmrd.USER_INTS):
-            hdr.user_int[n] =  h5hdr['user_int'][n]
-        for n in range(ismrmrd.USER_FLOATS):
-            hdr.user_float[n] =  h5hdr['user_float'][n]
-
-        # create a new acquisition
+        # create an acquisition
         acq = ismrmrd.Acquisition()
 
-        # set the header
-        # this sets the size for the aquisition's data and trajectory arrays
-        acq.setHead(hdr)
+        # grab a shortcut to the header in the hdf5 file        
+        h5hdr = self.__dset['data'][acqnum]['head']
         
+        # set the size
+        acq.resize(h5hdr['number_of_samples'], h5hdr['active_channels'], h5hdr['trajectory_dimensions'])
+
+        # set the rest of the header fields        
+        acq.version = h5hdr['version']
+        acq.flags = h5hdr['flags']
+        acq.measurement_uid =  h5hdr['measurement_uid']
+        acq.scan_counter = h5hdr['scan_counter']
+        acq.acquisition_time_stamp =  h5hdr['acquisition_time_stamp']
+        for n in range(ismrmrd.PHYS_STAMPS):
+            acq.physiology_time_stamp[n] =  h5hdr['physiology_time_stamp'][n]
+        acq.available_channels =  h5hdr['available_channels']
+        for n in range(ismrmrd.CHANNEL_MASKS):
+            acq.channel_mask[n] =  h5hdr['channel_mask'][n]
+        acq.discard_pre =  h5hdr['discard_pre']
+        acq.discard_post =  h5hdr['discard_post']
+        acq.center_sample =  h5hdr['center_sample']
+        acq.encoding_space_ref =  h5hdr['encoding_space_ref']
+        acq.sample_time_us =  h5hdr['sample_time_us']
+        for n in range(ismrmrd.POSITION_LENGTH):
+            acq.position[n] =  h5hdr['position'][n]
+        for n in range(ismrmrd.DIRECTION_LENGTH):
+            acq.read_dir[n] =  h5hdr['read_dir'][n]
+        for n in range(ismrmrd.DIRECTION_LENGTH):
+            acq.phase_dir[n] =  h5hdr['phase_dir'][n]
+        for n in range(ismrmrd.DIRECTION_LENGTH):
+            acq.slice_dir[n] =  h5hdr['slice_dir'][n]
+        for n in range(ismrmrd.POSITION_LENGTH):
+            acq.patient_table_position[n] =  h5hdr['patient_table_position'][n]
+        acq.idx.kspace_encode_step_1 =  h5hdr['idx']['kspace_encode_step_1']
+        acq.idx.kspace_encode_step_2 =  h5hdr['idx']['kspace_encode_step_2']
+        acq.idx.average =  h5hdr['idx']['average']
+        acq.idx.slice =  h5hdr['idx']['slice']
+        acq.idx.contrast =  h5hdr['idx']['contrast']
+        acq.idx.phase =  h5hdr['idx']['phase']
+        acq.idx.repetition =  h5hdr['idx']['repetition']
+        acq.idx.set =  h5hdr['idx']['set']
+        acq.idx.segment =  h5hdr['idx']['segment']
+        for n in range(ismrmrd.USER_INTS):
+            acq.idx.user[n] =  h5hdr['idx']['user'][n]
+        for n in range(ismrmrd.USER_INTS):
+            acq.user_int[n] =  h5hdr['user_int'][n]
+        for n in range(ismrmrd.USER_FLOATS):
+            acq.user_float[n] =  h5hdr['user_float'][n]
+
         # copy the data as complex float
-        acq.data[:] = self.__dset['data'][acqnum]['data'].view(np.complex64).reshape((hdr.active_channels, hdr.number_of_samples))[:]
+        acq.data[:] = self.__dset['data'][acqnum]['data'].view(np.complex64).reshape((acq.active_channels, acq.number_of_samples))[:]
         
         # copy the trajectory as float
         if acq.traj.size>0:
-            acq.traj[:] = self.__dset['data'][acqnum]['traj'].reshape((hdr.number_of_samples,hdr.trajectory_dimensions))[:]
+            acq.traj[:] = self.__dset['data'][acqnum]['traj'].reshape((acq.number_of_samples,acq.trajectory_dimensions))[:]
         
         return acq
     
@@ -146,60 +143,58 @@ class Dataset(object):
             self.__dset.create_dataset("data", (1,), maxshape=(None,), dtype=acquisition_dtype)
             acqnum = 0
         
-        # get the header for the acquisition and fill it        
-        #TODO this is an extra copy.  How to get rid of it?
-        hdr = acq.getHead()
+        # create an empty hdf5 acquisition and fill it
         h5acq = np.empty((1,),dtype=acquisition_dtype)
-        
-        h5acq[0]['head']['version'] = hdr.version
-        h5acq[0]['head']['flags'] = hdr.flags
-        h5acq[0]['head']['measurement_uid'] = hdr.measurement_uid
-        h5acq[0]['head']['scan_counter'] = hdr.scan_counter
-        h5acq[0]['head']['acquisition_time_stamp'] = hdr.acquisition_time_stamp
+        # first the header
+        h5acq[0]['head']['version'] = acq.version
+        h5acq[0]['head']['flags'] = acq.flags
+        h5acq[0]['head']['measurement_uid'] = acq.measurement_uid
+        h5acq[0]['head']['scan_counter'] = acq.scan_counter
+        h5acq[0]['head']['acquisition_time_stamp'] = acq.acquisition_time_stamp
         for n in range(ismrmrd.PHYS_STAMPS):
-            h5acq[0]['head']['physiology_time_stamp'][n] = hdr.physiology_time_stamp[n]
-        h5acq[0]['head']['number_of_samples'] = hdr.number_of_samples
-        h5acq[0]['head']['available_channels'] = hdr.available_channels
-        h5acq[0]['head']['active_channels'] = hdr.active_channels
+            h5acq[0]['head']['physiology_time_stamp'][n] = acq.physiology_time_stamp[n]
+        h5acq[0]['head']['number_of_samples'] = acq.number_of_samples
+        h5acq[0]['head']['available_channels'] = acq.available_channels
+        h5acq[0]['head']['active_channels'] = acq.active_channels
         for n in range(ismrmrd.CHANNEL_MASKS):
-            h5acq[0]['head']['channel_mask'][n] = hdr.channel_mask[n]
-        h5acq[0]['head']['discard_pre'] = hdr.discard_pre
-        h5acq[0]['head']['discard_post'] = hdr.discard_post
-        h5acq[0]['head']['center_sample'] = hdr.center_sample
-        h5acq[0]['head']['encoding_space_ref'] = hdr.encoding_space_ref
-        h5acq[0]['head']['trajectory_dimensions'] = hdr.trajectory_dimensions
-        h5acq[0]['head']['sample_time_us'] = hdr.sample_time_us
+            h5acq[0]['head']['channel_mask'][n] = acq.channel_mask[n]
+        h5acq[0]['head']['discard_pre'] = acq.discard_pre
+        h5acq[0]['head']['discard_post'] = acq.discard_post
+        h5acq[0]['head']['center_sample'] = acq.center_sample
+        h5acq[0]['head']['encoding_space_ref'] = acq.encoding_space_ref
+        h5acq[0]['head']['trajectory_dimensions'] = acq.trajectory_dimensions
+        h5acq[0]['head']['sample_time_us'] = acq.sample_time_us
         for n in range(ismrmrd.POSITION_LENGTH):
-            h5acq[0]['head']['position'][n] = hdr.position[n]
+            h5acq[0]['head']['position'][n] = acq.position[n]
         for n in range(ismrmrd.DIRECTION_LENGTH):
-            h5acq[0]['head']['read_dir'][n] = hdr.read_dir[n]
+            h5acq[0]['head']['read_dir'][n] = acq.read_dir[n]
         for n in range(ismrmrd.DIRECTION_LENGTH):
-            h5acq[0]['head']['phase_dir'][n] = hdr.phase_dir[n]
+            h5acq[0]['head']['phase_dir'][n] = acq.phase_dir[n]
         for n in range(ismrmrd.DIRECTION_LENGTH):
-            h5acq[0]['head']['slice_dir'][n] = hdr.slice_dir[n]
+            h5acq[0]['head']['slice_dir'][n] = acq.slice_dir[n]
         for n in range(ismrmrd.POSITION_LENGTH):
-            h5acq[0]['head']['patient_table_position'][n] = hdr.patient_table_position[n]
-        h5acq[0]['head']['idx']['kspace_encode_step_1'] = hdr.idx.kspace_encode_step_1
-        h5acq[0]['head']['idx']['kspace_encode_step_2'] = hdr.idx.kspace_encode_step_2
-        h5acq[0]['head']['idx']['average'] = hdr.idx.average
-        h5acq[0]['head']['idx']['slice'] = hdr.idx.slice
-        h5acq[0]['head']['idx']['contrast'] = hdr.idx.contrast
-        h5acq[0]['head']['idx']['phase'] = hdr.idx.phase
-        h5acq[0]['head']['idx']['repetition'] = hdr.idx.repetition
-        h5acq[0]['head']['idx']['set'] = hdr.idx.set
-        h5acq[0]['head']['idx']['segment'] = hdr.idx.segment
+            h5acq[0]['head']['patient_table_position'][n] = acq.patient_table_position[n]
+        h5acq[0]['head']['idx']['kspace_encode_step_1'] = acq.idx.kspace_encode_step_1
+        h5acq[0]['head']['idx']['kspace_encode_step_2'] = acq.idx.kspace_encode_step_2
+        h5acq[0]['head']['idx']['average'] = acq.idx.average
+        h5acq[0]['head']['idx']['slice'] = acq.idx.slice
+        h5acq[0]['head']['idx']['contrast'] = acq.idx.contrast
+        h5acq[0]['head']['idx']['phase'] = acq.idx.phase
+        h5acq[0]['head']['idx']['repetition'] = acq.idx.repetition
+        h5acq[0]['head']['idx']['set'] = acq.idx.set
+        h5acq[0]['head']['idx']['segment'] = acq.idx.segment
         for n in range(ismrmrd.USER_INTS):
-            h5acq[0]['head']['idx']['user'][n] = hdr.idx.user[n]
+            h5acq[0]['head']['idx']['user'][n] = acq.idx.user[n]
         for n in range(ismrmrd.USER_INTS):
-            h5acq[0]['head']['user_int'][n] = hdr.user_int[n]
+            h5acq[0]['head']['user_int'][n] = acq.user_int[n]
         for n in range(ismrmrd.USER_FLOATS):
-            h5acq[0]['head']['user_float'][n] = hdr.user_float[n]
+            h5acq[0]['head']['user_float'][n] = acq.user_float[n]
 
         # copy the data as float
-        h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*hdr.active_channels*hdr.number_of_samples,))
+        h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*acq.active_channels*acq.number_of_samples,))
         
         # copy the trajectory as float
-        h5acq[0]['traj'] = acq.traj.view(np.float32).reshape((hdr.number_of_samples*hdr.trajectory_dimensions,))
+        h5acq[0]['traj'] = acq.traj.view(np.float32).reshape((acq.number_of_samples*acq.trajectory_dimensions,))
 
         # put it into the hdf5 file
         self.__dset['data'][acqnum] = h5acq[0]

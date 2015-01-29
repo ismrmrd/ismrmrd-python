@@ -96,18 +96,6 @@ class Acquisition(object):
         self.__head = AcquisitionHeader()
         self.__data = np.empty(shape=(1, 0), dtype=np.complex64)
         self.__traj = np.empty(shape=(0, 1), dtype=np.float32)
-        
-    @property
-    def number_of_samples(self):
-        return self.__head.number_of_samples
-
-    @property
-    def active_channels(self):
-        return self.__head.active_channels
-
-    @property
-    def trajectory_dimensions(self):
-        return self.__head.trajectory_dimensions
 
     @property
     def version(self):
@@ -115,6 +103,158 @@ class Acquisition(object):
     @version.setter
     def version(self, value):
         self.__head.version = value
+
+    @property
+    def flags(self):
+        return self.__head.flags
+    @flags.setter
+    def flags(self, value):
+        self.__head.flags = value
+
+    @property
+    def measurement_uid(self):
+        return self.__head.measurement_uid
+    @flags.setter
+    def measurement_uid(self, value):
+        self.__head.measurement_uid = value
+
+    @property
+    def scan_counter(self):
+        return self.__head.scan_counter
+    @scan_counter.setter
+    def scan_counter(self, value):
+        self.__head.scan_counter = value
+
+    @property
+    def acquisition_time_stamp(self):
+        return self.__head.acquisition_time_stamp
+    @acquisition_time_stamp.setter
+    def acquisition_time_stamp(self, value):
+        self.__head.acquisition_time_stamp = value
+
+    @property
+    def physiology_time_stamp(self):
+        return self.__head.physiology_time_stamp
+    @physiology_time_stamp.setter
+    def physiology_time_stamp(self, value):
+        self.__head.physiology_time_stamp = value
+
+    @property
+    def number_of_samples(self):
+        return self.__head.number_of_samples
+
+    @property
+    def available_channels(self):
+        return self.__head.available_channels
+    @available_channels.setter
+    def available_channels(self, value):
+        self.__head.available_channels = value
+
+    @property
+    def active_channels(self):
+        return self.__head.active_channels
+
+    @property
+    def channel_mask(self):
+        return self.__head.channel_mask
+    @channel_mask.setter
+    def channel_mask(self, value):
+        self.__head.channel_mask = value
+
+    @property
+    def discard_pre(self):
+        return self.__head.discard_pre
+    @discard_pre.setter
+    def discard_pre(self, value):
+        self.__head.discard_pre = value
+
+    @property
+    def discard_post(self):
+        return self.__head.discard_post
+    @discard_post.setter
+    def discard_post(self, value):
+        self.__head.discard_post = value
+
+    @property
+    def center_sample(self):
+        return self.__head.center_sample
+    @center_sample.setter
+    def center_sample(self, value):
+        self.__head.center_sample = value
+
+    @property
+    def encoding_space_ref(self):
+        return self.__head.encoding_space_ref
+    @encoding_space_ref.setter
+    def encoding_space_ref(self, value):
+        self.__head.encoding_space_ref = value
+
+    @property
+    def trajectory_dimensions(self):
+        return self.__head.trajectory_dimensions
+
+    @property
+    def sample_time_us(self):
+        return self.__head.sample_time_us
+    @sample_time_us.setter
+    def sample_time_us(self, value):
+        self.__head.sample_time_us = value
+
+    @property
+    def position(self):
+        return self.__head.position
+    @position.setter
+    def position(self, value):
+        self.__head.position = value
+
+    @property
+    def read_dir(self):
+        return self.__head.read_dir
+    @read_dir.setter
+    def read_dir(self, value):
+        self.__head.read_dir = value
+
+    @property
+    def phase_dir(self):
+        return self.__head.phase_dir
+    @phase_dir.setter
+    def phase_dir(self, value):
+        self.__head.phase_dir = value
+                  
+    @property
+    def slice_dir(self):
+        return self.__head.slice_dir
+    @slice_dir.setter
+    def slice_dir(self, value):
+        self.__head.slice_dir = value
+              
+    @property
+    def patient_table_position(self):
+        return self.__head.patient_table_position
+    @patient_table_position.setter
+    def patient_table_position(self, value):
+        self.__head.patient_table_position = value
+        
+    @property
+    def idx(self):
+        return self.__head.idx
+    @idx.setter
+    def idx(self, value):
+        self.__head.idx = value
+
+    @property
+    def user_int(self):
+        return self.__head.user_int
+    @user_int.setter
+    def user_int(self, value):
+        self.__head.user_int = value
+
+    @property
+    def user_float(self):
+        return self.__head.user_float
+    @user_float.setter
+    def user_float(self, value):
+        self.__head.user_float = value
 
     def resize(self, number_of_samples = 0, active_channels = 1, trajectory_dimensions = 0):
         self.__data = np.resize(self.__data, (active_channels, number_of_samples))
