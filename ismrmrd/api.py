@@ -50,6 +50,7 @@ ACQ_USER6                               = 62
 ACQ_USER7                               = 63
 ACQ_USER8                               = 64
 
+
 # EncodingCounters
 class EncodingCounters(ctypes.Structure):
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),

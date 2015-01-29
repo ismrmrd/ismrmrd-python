@@ -54,7 +54,7 @@ class Dataset(object):
             self.__file.close()
 
     @property
-    def number_of_aquisitions(self):
+    def number_of_acquisitions(self):
         return self.__dset['data'].size
 
     def read_xml_header(self):
