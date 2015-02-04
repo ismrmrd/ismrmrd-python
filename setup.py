@@ -3,8 +3,7 @@ from distutils.core import setup
 from distutils.command.build import build
 from distutils.command.build_py import build_py
 
-ismrmrd_home = os.environ.get('ISMRMRD_HOME', '')
-schema_file = os.path.join(ismrmrd_home,'share','ismrmrd','schema','ismrmrd.xsd')
+schema_file = os.path.join('schema','ismrmrd.xsd')
 
 class my_build(build):
     def run(self):
