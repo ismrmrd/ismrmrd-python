@@ -50,9 +50,6 @@ ACQ_USER6                               = 62
 ACQ_USER7                               = 63
 ACQ_USER8                               = 64
 
-def __isFlagSet(flags, val):
-        return ((flags & (1L << (val-1))) > 0)
-
 # EncodingCounters
 class EncodingCounters(ctypes.Structure):
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),
@@ -94,7 +91,7 @@ class AcquisitionHeader(ctypes.Structure):
                 ("user_float", ctypes.c_float * USER_FLOATS),]
 
     def isFlagSet(self,val):
-        return __isFlagSet(self.flags, val)
+        return ((self.flags & (1L << (val-1))) > 0)
 
         
 class Acquisition(object):
@@ -286,5 +283,7 @@ class Acquisition(object):
         return self.__traj.view()
 
     def isFlagSet(self,val):
-        return __isFlagSet(self.__head.flags, val)
+        return ((self.__head.flags & (1L << (val-1))) > 0)
+
+
         
