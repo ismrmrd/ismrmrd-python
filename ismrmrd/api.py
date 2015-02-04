@@ -90,9 +90,19 @@ class AcquisitionHeader(ctypes.Structure):
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),]
 
+    def clearAllFlags(self):
+        self.flags = 0L
+        
     def isFlagSet(self,val):
         return ((self.flags & (1L << (val-1))) > 0)
 
+    def setFlag(self,val):
+        self.flags |= (1L << (val-1))
+
+    def clearFlag(self,val):
+        if self.isFlagSet(val):
+            bitmask = (1L << (val-1))
+            self.flags -= bitmask
         
 class Acquisition(object):
     # Acquisition class
@@ -285,5 +295,18 @@ class Acquisition(object):
     def isFlagSet(self,val):
         return ((self.__head.flags & (1L << (val-1))) > 0)
 
+    def clearAllFlags(self):
+        self.__head.flags = 0L
+        
+    def isFlagSet(self,val):
+        return ((self.__head.flags & (1L << (val-1))) > 0)
+
+    def setFlag(self,val):
+        self.__head.flags |= (1L << (val-1))
+
+    def clearFlag(self,val):
+        if self.isFlagSet(val):
+            bitmask = (1L << (val-1))
+            self.__head.flags -= bitmask
 
         
