@@ -50,6 +50,8 @@ ACQ_USER6                               = 62
 ACQ_USER7                               = 63
 ACQ_USER8                               = 64
 
+def __isFlagSet(flags, val):
+        return ((flags & (1L << (val-1))) > 0)
 
 # EncodingCounters
 class EncodingCounters(ctypes.Structure):
@@ -90,6 +92,10 @@ class AcquisitionHeader(ctypes.Structure):
                 ("idx", EncodingCounters),
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),]
+
+    def isFlagSet(self,val):
+        return __isFlagSet(self.flags, val)
+
         
 class Acquisition(object):
     # Acquisition class
@@ -278,3 +284,7 @@ class Acquisition(object):
     @property
     def traj(self):
         return self.__traj.view()
+
+    def isFlagSet(self,val):
+        return __isFlagSet(self.__head.flags, val)
+        
