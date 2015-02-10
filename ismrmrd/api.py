@@ -52,6 +52,7 @@ ACQ_USER8                               = 64
 
 # EncodingCounters
 class EncodingCounters(ctypes.Structure):
+    _pack_ = 2
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),
                 ("kspace_encode_step_2", ctypes.c_uint16),
                 ("average", ctypes.c_uint16),
@@ -63,8 +64,13 @@ class EncodingCounters(ctypes.Structure):
                 ("segment", ctypes.c_uint16),
                 ("user", ctypes.c_uint16*USER_INTS),]
 
+    def __repr__(self):
+        for field_name, field_type in self._fields_:
+            print field_name, getattr(self, field_name)
+        
 # AcquisitionHeader
 class AcquisitionHeader(ctypes.Structure):
+    _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
                 ("measurement_uid", ctypes.c_uint32),
@@ -90,6 +96,10 @@ class AcquisitionHeader(ctypes.Structure):
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),]
 
+    def __repr__(self):
+        for field_name, field_type in self._fields_:
+            print field_name, getattr(self, field_name)
+        
     def clearAllFlags(self):
         self.flags = 0L
         
@@ -103,172 +113,47 @@ class AcquisitionHeader(ctypes.Structure):
         if self.isFlagSet(val):
             bitmask = (1L << (val-1))
             self.flags -= bitmask
-        
+
+# Acquisition class
 class Acquisition(object):
-    # Acquisition class
-    def __init__(self):
-        self.__head = AcquisitionHeader()
-        self.__data = np.empty(shape=(1, 0), dtype=np.complex64)
-        self.__traj = np.empty(shape=(0, 1), dtype=np.float32)
+    __readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
+    
+    def __init__(self, head = None):
+        if head is None:
+            self.__head = AcquisitionHeader()
+            self.__data = np.empty(shape=(1, 0), dtype=np.complex64)
+            self.__traj = np.empty(shape=(0, 1), dtype=np.float32)
+        else:
+            self.__head = AcquisitionHeader.from_buffer_copy(head)
+            self.__data = np.empty(shape=(self.__head.active_channels, self.__head.number_of_samples), dtype=np.complex64)
+            self.__traj = np.empty(shape=(self.__head.number_of_samples, self.__head.trajectory_dimensions), dtype=np.float32)
 
-    @property
-    def version(self):
-        return self.__head.version
-    @version.setter
-    def version(self, value):
-        self.__head.version = value
+        for (field, type) in self.__head._fields_:
+            try:
+                g = '__get_' + field
+                s = '__set_' + field
+                setattr(Acquisition, g, self.__getter(field))
+                setattr(Acquisition, s, self.__setter(field))
+                p = property(getattr(Acquisition, g), getattr(Acquisition, s))
+                setattr(Acquisition, field, p)
+            except TypeError:
+                # e.g. if key is an `int`, skip it
+                pass
 
-    @property
-    def flags(self):
-        return self.__head.flags
-    @flags.setter
-    def flags(self, value):
-        self.__head.flags = value
+    def __getter(self, name):
+        def fn(self):
+            return self.__head.__getattribute__(name)
+        return fn
 
-    @property
-    def measurement_uid(self):
-        return self.__head.measurement_uid
-    @flags.setter
-    def measurement_uid(self, value):
-        self.__head.measurement_uid = value
+    def __setter(self, name):
+        if name in self.__readonly:
+            def fn(self,val):
+                raise AttributeError(name+" is read-only. Use resize instead.")
+        else:
+            def fn(self, val):
+                self.__head.__setattr__(name, val)
 
-    @property
-    def scan_counter(self):
-        return self.__head.scan_counter
-    @scan_counter.setter
-    def scan_counter(self, value):
-        self.__head.scan_counter = value
-
-    @property
-    def acquisition_time_stamp(self):
-        return self.__head.acquisition_time_stamp
-    @acquisition_time_stamp.setter
-    def acquisition_time_stamp(self, value):
-        self.__head.acquisition_time_stamp = value
-
-    @property
-    def physiology_time_stamp(self):
-        return self.__head.physiology_time_stamp
-    @physiology_time_stamp.setter
-    def physiology_time_stamp(self, value):
-        self.__head.physiology_time_stamp = value
-
-    @property
-    def number_of_samples(self):
-        return self.__head.number_of_samples
-
-    @property
-    def available_channels(self):
-        return self.__head.available_channels
-    @available_channels.setter
-    def available_channels(self, value):
-        self.__head.available_channels = value
-
-    @property
-    def active_channels(self):
-        return self.__head.active_channels
-
-    @property
-    def channel_mask(self):
-        return self.__head.channel_mask
-    @channel_mask.setter
-    def channel_mask(self, value):
-        self.__head.channel_mask = value
-
-    @property
-    def discard_pre(self):
-        return self.__head.discard_pre
-    @discard_pre.setter
-    def discard_pre(self, value):
-        self.__head.discard_pre = value
-
-    @property
-    def discard_post(self):
-        return self.__head.discard_post
-    @discard_post.setter
-    def discard_post(self, value):
-        self.__head.discard_post = value
-
-    @property
-    def center_sample(self):
-        return self.__head.center_sample
-    @center_sample.setter
-    def center_sample(self, value):
-        self.__head.center_sample = value
-
-    @property
-    def encoding_space_ref(self):
-        return self.__head.encoding_space_ref
-    @encoding_space_ref.setter
-    def encoding_space_ref(self, value):
-        self.__head.encoding_space_ref = value
-
-    @property
-    def trajectory_dimensions(self):
-        return self.__head.trajectory_dimensions
-
-    @property
-    def sample_time_us(self):
-        return self.__head.sample_time_us
-    @sample_time_us.setter
-    def sample_time_us(self, value):
-        self.__head.sample_time_us = value
-
-    @property
-    def position(self):
-        return self.__head.position
-    @position.setter
-    def position(self, value):
-        self.__head.position = value
-
-    @property
-    def read_dir(self):
-        return self.__head.read_dir
-    @read_dir.setter
-    def read_dir(self, value):
-        self.__head.read_dir = value
-
-    @property
-    def phase_dir(self):
-        return self.__head.phase_dir
-    @phase_dir.setter
-    def phase_dir(self, value):
-        self.__head.phase_dir = value
-                  
-    @property
-    def slice_dir(self):
-        return self.__head.slice_dir
-    @slice_dir.setter
-    def slice_dir(self, value):
-        self.__head.slice_dir = value
-              
-    @property
-    def patient_table_position(self):
-        return self.__head.patient_table_position
-    @patient_table_position.setter
-    def patient_table_position(self, value):
-        self.__head.patient_table_position = value
-        
-    @property
-    def idx(self):
-        return self.__head.idx
-    @idx.setter
-    def idx(self, value):
-        self.__head.idx = value
-
-    @property
-    def user_int(self):
-        return self.__head.user_int
-    @user_int.setter
-    def user_int(self, value):
-        self.__head.user_int = value
-
-    @property
-    def user_float(self):
-        return self.__head.user_float
-    @user_float.setter
-    def user_float(self, value):
-        self.__head.user_float = value
+        return fn
 
     def resize(self, number_of_samples = 0, active_channels = 1, trajectory_dimensions = 0):
         self.__data = np.resize(self.__data, (active_channels, number_of_samples))
@@ -281,8 +166,8 @@ class Acquisition(object):
         return copy.deepcopy(self.__head)
 
     def setHead(self, hdr):
-        self.__head = copy.deepcopy(hdr)
-        self.resize(hdr.number_of_samples, hdr.active_channels, hdr.trajectory_dimensions)
+        self.__head = self.__head.__class__.from_buffer_copy(hdr)
+        self.resize(self.__head.number_of_samples, self.__head.active_channels, self.__head.trajectory_dimensions)
     
     @property
     def data(self):
@@ -291,22 +176,3 @@ class Acquisition(object):
     @property
     def traj(self):
         return self.__traj.view()
-
-    def isFlagSet(self,val):
-        return ((self.__head.flags & (1L << (val-1))) > 0)
-
-    def clearAllFlags(self):
-        self.__head.flags = 0L
-        
-    def isFlagSet(self,val):
-        return ((self.__head.flags & (1L << (val-1))) > 0)
-
-    def setFlag(self,val):
-        self.__head.flags |= (1L << (val-1))
-
-    def clearFlag(self,val):
-        if self.isFlagSet(val):
-            bitmask = (1L << (val-1))
-            self.__head.flags -= bitmask
-
-        
