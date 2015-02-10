@@ -4,6 +4,28 @@ import copy
 
 from .constants import *
 
+# Image data type lookup function
+def get_image_dtype(val):
+    if val == DATATYPE_USHORT:
+        return np.uint16
+    elif val == DATATYPE_SHORT:
+        return np.int16
+    elif val == DATATYPE_UINT:
+        return np.uint32
+    elif val == DATATYPE_INT:
+        return np.int
+    elif val == DATATYPE_FLOAT:
+        return np.float32
+    elif val == DATATYPE_DOUBLE:
+        return np.float64
+    elif val == DATATYPE_CXFLOAT:
+        return np.complex64
+    elif val == DATATYPE_CXDOUBLE:
+        return np.complex128
+    else:
+        raise TypeError("Unknown image data type.")
+    
+
 # Image Header
 class ImageHeader(ctypes.Structure):
     _pack_ = 2
@@ -53,12 +75,65 @@ class ImageHeader(ctypes.Structure):
     #    for field_name, field_type in self._fields_:
     #        print field_name, getattr(self, field_name)
 
-## /**
-##  *  An individual Image
-##  *  @ingroup capi
-##  */
-## typedef struct ISMRMRD_Image {
-##     ISMRMRD_ImageHeader head;
-##     char *attribute_string;
-##     void *data;
-## } ISMRMRD_Image;
+
+# Image class
+class Image(object):
+    __readonly = ('data_type', 'matrix_size', 'channels', 'attribute_string_len')
+    
+    def __init__(self, head = None, attribute_string = ""):
+        if head is None:
+            self.__head = ImageHeader()
+            self.__head.data_type = DATATYPE_CXFLOAT
+            self.__data = np.empty(shape=(1, 1, 1, 0), dtype=get_image_dtype(DATATYPE_CXFLOAT))
+        else:
+            self.__head = ImageHeader.from_buffer_copy(head)
+            self.__data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[3],
+                                          self.__head.matrix_size[2], self.__head.matrix_size[1],
+                                          self.__head.matrix_size[0]), dtype=get_image_dtype(self.__head.image_type))
+
+        #TODO do we need to check if attribute_string is really a string?
+        self.__attribute_string = attribute_string
+        if (len(self.__attribute_string) != self.__head.attribute_string_len):
+            raise ValueError("attribute_string and head.attribute_string_len are inconsistent.")
+        
+
+        for (field, type) in self.__head._fields_:
+            try:
+                g = '__get_' + field
+                s = '__set_' + field
+                setattr(Image, g, self.__getter(field))
+                setattr(Image, s, self.__setter(field))
+                p = property(getattr(Image, g), getattr(Image, s))
+                setattr(Image, field, p)
+            except TypeError:
+                # e.g. if key is an `int`, skip it
+                pass
+
+    def __getter(self, name):
+        def fn(self):
+            return self.__head.__getattribute__(name)
+        return fn
+
+    def __setter(self, name):
+        if name in self.__readonly:
+            def fn(self,val):
+                raise AttributeError(name+" is read-only.")
+        else:
+            def fn(self, val):
+                self.__head.__setattr__(name, val)
+
+        return fn
+
+    @property
+    def data(self):
+        return self.__data.view()
+
+    @property
+    def attribute_string(self):
+        return self.__attribute_string
+    
+    @attribute_string.setter
+    def attribute_string(self,val):
+        self.__attribute_string = str(val)
+        self.__head.attribute_string_len = len(self.__attribute_string)
+        
