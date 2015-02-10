@@ -18,10 +18,15 @@ class EncodingCounters(ctypes.Structure):
                 ("segment", ctypes.c_uint16),
                 ("user", ctypes.c_uint16*USER_INTS),]
 
-    #TODO - pretty print
-    #def __repr__(self):
-    #    for field_name, field_type in self._fields_:
-    #        print field_name, getattr(self, field_name)
+    def __str__(self):
+        retstr = ''
+        for field_name, field_type in self._fields_:
+            var = getattr(self,field_name)
+            if hasattr(var, '_length_'):
+                retstr += '%s: %s\n' % (field_name, ', '.join((str(v) for v in var)))
+            else:
+                retstr += '%s: %s\n' % (field_name, var)
+        return retstr
         
 # AcquisitionHeader
 class AcquisitionHeader(ctypes.Structure):
@@ -51,10 +56,15 @@ class AcquisitionHeader(ctypes.Structure):
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),]
 
-    #TODO pretty print
-    #def __repr__(self):
-    #    for field_name, field_type in self._fields_:
-    #        print field_name, getattr(self, field_name)
+    def __str__(self):
+        retstr = ''
+        for field_name, field_type in self._fields_:
+            var = getattr(self,field_name)
+            if hasattr(var, '_length_'):
+                retstr += '%s: %s\n' % (field_name, ', '.join((str(v) for v in var)))
+            else:
+                retstr += '%s: %s\n' % (field_name, var)
+        return retstr
         
     def clearAllFlags(self):
         self.flags = 0L
@@ -99,8 +109,12 @@ class Acquisition(object):
                 pass
 
     def __getter(self, name):
-        def fn(self):
-            return self.__head.__getattribute__(name)
+        if name in self.__readonly:
+            def fn(self):
+                return copy.copy(self.__head.__getattribute__(name))
+        else:
+            def fn(self):
+                return self.__head.__getattribute__(name)
         return fn
 
     def __setter(self, name):
@@ -134,3 +148,11 @@ class Acquisition(object):
     @property
     def traj(self):
         return self.__traj.view()
+
+    def __str__(self):
+        retstr = ''
+        retstr += 'Header:\n %s\n' % (self.__head)
+        retstr += 'Trajectory:\n %s\n' % (self.traj)
+        retstr += 'Data:\n %s\n' % (self.data)
+        return retstr
+ 

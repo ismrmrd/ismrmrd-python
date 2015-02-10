@@ -70,15 +70,21 @@ class ImageHeader(ctypes.Structure):
             bitmask = (1L << (val-1))
             self.flags -= bitmask
 
-    #TODO - pretty print
-    #def __repr__(self):
-    #    for field_name, field_type in self._fields_:
-    #        print field_name, getattr(self, field_name)
+    def __str__(self):
+        retstr = ''
+        for field_name, field_type in self._fields_:
+            var = getattr(self,field_name)
+            if hasattr(var, '_length_'):
+                retstr += '%s: %s\n' % (field_name, ', '.join((str(v) for v in var)))
+            else:
+                retstr += '%s: %s\n' % (field_name, var)
+        return retstr
 
 
 # Image class
 class Image(object):
     __readonly = ('data_type', 'matrix_size', 'channels', 'attribute_string_len')
+    __ignore = ('matrix_size')
     
     def __init__(self, head = None, attribute_string = ""):
         if head is None:
@@ -98,20 +104,27 @@ class Image(object):
         
 
         for (field, type) in self.__head._fields_:
-            try:
-                g = '__get_' + field
-                s = '__set_' + field
-                setattr(Image, g, self.__getter(field))
-                setattr(Image, s, self.__setter(field))
-                p = property(getattr(Image, g), getattr(Image, s))
-                setattr(Image, field, p)
-            except TypeError:
-                # e.g. if key is an `int`, skip it
-                pass
-
+            if field in self.__ignore:
+                continue
+            else:
+                try:
+                    g = '__get_' + field
+                    s = '__set_' + field
+                    setattr(Image, g, self.__getter(field))
+                    setattr(Image, s, self.__setter(field))
+                    p = property(getattr(Image, g), getattr(Image, s))
+                    setattr(Image, field, p)
+                except TypeError:
+                    # e.g. if key is an `int`, skip it
+                    pass
+                
     def __getter(self, name):
-        def fn(self):
-            return self.__head.__getattribute__(name)
+        if name in self.__readonly:
+            def fn(self):
+                return copy.copy(self.__head.__getattribute__(name))
+        else:
+            def fn(self):
+                return self.__head.__getattribute__(name)
         return fn
 
     def __setter(self, name):
@@ -123,6 +136,20 @@ class Image(object):
                 self.__head.__setattr__(name, val)
 
         return fn
+
+    def getHead(self):
+        return copy.deepcopy(self.__head)
+
+    def setHead(self, hdr):
+        self.__head = self.__head.__class__.from_buffer_copy(hdr)
+        self.setDataType(self.__head.data_type)
+        self.resize(self.__head.channels, self.__head.matrix_size[3], self.__head.matrix_size[2], self.__head.matrix_size[1], self.__head.matrix_size[0])
+
+    def setDataType(self, val):
+        self.__data = self.__data.astype(get_image_dtype(val))
+        
+    def resize(self, nc, nz, ny, nx):
+        self.__data = np.resize(self.__data, (nc, nz, ny, nx))
 
     @property
     def data(self):
@@ -136,4 +163,15 @@ class Image(object):
     def attribute_string(self,val):
         self.__attribute_string = str(val)
         self.__head.attribute_string_len = len(self.__attribute_string)
+        
+    @property
+    def matrix_size(self):
+        return self.__data.shape[1:4]
+
+    def __str__(self):
+        retstr = ''
+        retstr += 'Header:\n %s\n' % (self.__head)
+        retstr += 'Attribute string:\n %s\n' % (self.attribute_string)
+        retstr += 'Data:\n %s\n' % (self.data)
+        return retstr
         
