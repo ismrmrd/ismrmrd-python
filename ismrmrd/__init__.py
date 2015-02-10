@@ -1,4 +1,5 @@
-from .api import *
+from .acquisition import *
+from .image import *
 from .hdf5 import Dataset
 
-__all__ = ["api", "xsd", "hdf5"]
+__all__ = ["acquisition", "image", "xsd", "hdf5"]

@@ -64,9 +64,10 @@ class EncodingCounters(ctypes.Structure):
                 ("segment", ctypes.c_uint16),
                 ("user", ctypes.c_uint16*USER_INTS),]
 
-    def __repr__(self):
-        for field_name, field_type in self._fields_:
-            print field_name, getattr(self, field_name)
+    #TODO - pretty print
+    #def __repr__(self):
+    #    for field_name, field_type in self._fields_:
+    #        print field_name, getattr(self, field_name)
         
 # AcquisitionHeader
 class AcquisitionHeader(ctypes.Structure):
@@ -96,9 +97,10 @@ class AcquisitionHeader(ctypes.Structure):
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),]
 
-    def __repr__(self):
-        for field_name, field_type in self._fields_:
-            print field_name, getattr(self, field_name)
+    #TODO pretty print
+    #def __repr__(self):
+    #    for field_name, field_type in self._fields_:
+    #        print field_name, getattr(self, field_name)
         
     def clearAllFlags(self):
         self.flags = 0L
