@@ -133,6 +133,9 @@ class Dataset(object):
 
         self._dataset_name = dataset_name
 
+    def __del__(self):
+        self._file.close()
+        
     @property
     def _dataset(self):
         if self._dataset_name not in self._file:
@@ -229,6 +232,9 @@ class Dataset(object):
         return im
     
     def append_image(self, impath, im):
+        # create the dataset if needed
+        self._file.require_group(self._dataset_name)
+
         # create the image if needed
         self._dataset.require_group(impath)
         
@@ -242,7 +248,8 @@ class Dataset(object):
         else:
             self._dataset[impath].create_dataset("header", (1,), maxshape=(None,), dtype=image_header_dtype)
             self._dataset[impath].create_dataset("attributes", (1,), maxshape=(None,), dtype=h5py.special_dtype(vlen=str))
-            self._dataset[impath].create_dataset("data", (1,), maxshape=(None,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]), dtype=get_hdf5type(im.data_type))
+            self._dataset[impath].create_dataset("data", (1,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]),
+                                                maxshape=(None,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]), dtype=get_hdf5type(im.data_type))
             imnum = 0
         
         # put the header
@@ -274,13 +281,21 @@ class Dataset(object):
         return arr
     
     def append_array(self, arrpath, arr):
+        # create the dataset if needed
+        self._file.require_group(self._dataset_name)
+
         # extend by 1
         if arrpath in self._dataset:
             arrnum = self._dataset[arrpath].shape[0]
             self._dataset[arrpath].resize(arrnum+1,axis=0)
         else:
-            maxshape = tuple(list(arr.shape).insert(0,None))
-            self._dataset.create_dataset(arrpath, (1,), maxshape=maxshpae, dtype=get_arrayhdf5type(arr.dtype))
+            shape = list(arr.shape)
+            shape.insert(0,1)            
+            shape = tuple(shape)
+            maxshape = list(arr.shape)
+            maxshape.insert(0,None)
+            maxshape = tuple(maxshape)
+            self._dataset.create_dataset(arrpath, shape, maxshape=maxshape, dtype=get_arrayhdf5type(arr.dtype))
             arrnum = 0
         
         # put the data
