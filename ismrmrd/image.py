@@ -93,9 +93,9 @@ class Image(object):
             self.__data = np.empty(shape=(1, 1, 1, 0), dtype=get_image_dtype(DATATYPE_CXFLOAT))
         else:
             self.__head = ImageHeader.from_buffer_copy(head)
-            self.__data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[3],
-                                          self.__head.matrix_size[2], self.__head.matrix_size[1],
-                                          self.__head.matrix_size[0]), dtype=get_image_dtype(self.__head.image_type))
+            self.__data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[2],
+                                          self.__head.matrix_size[1], self.__head.matrix_size[0]),
+                                          dtype=get_image_dtype(self.__head.data_type))
 
         #TODO do we need to check if attribute_string is really a string?
         self.__attribute_string = attribute_string
@@ -143,7 +143,7 @@ class Image(object):
     def setHead(self, hdr):
         self.__head = self.__head.__class__.from_buffer_copy(hdr)
         self.setDataType(self.__head.data_type)
-        self.resize(self.__head.channels, self.__head.matrix_size[3], self.__head.matrix_size[2], self.__head.matrix_size[1], self.__head.matrix_size[0])
+        self.resize(self.__head.channels, self.__head.matrix_size[2], self.__head.matrix_size[1], self.__head.matrix_size[0])
 
     def setDataType(self, val):
         self.__data = self.__data.astype(get_image_dtype(val))
