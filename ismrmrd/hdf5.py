@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 import ismrmrd
 
+from .constants import *
+
 encoding_counters_dtype = np.dtype(
        [('kspace_encode_step_1', '<u2'),
         ('kspace_encode_step_2', '<u2'),
@@ -93,8 +95,27 @@ def get_hdf5type(val):
         return np.dtype([('real','<f8'),('imag','<f8')])
     else:
         raise TypeError("Unknown data type.")
-    
 
+def get_arrayhdf5type(val):
+    if val == np.uint16:
+        return np.dtype('<u2')
+    elif val == np.int16:
+        return np.dtype('<i2')
+    elif val == np.uint32:
+        return np.dtype('<u4')
+    elif val == np.int32:
+        return np.dtype('<i4')
+    elif val == np.float32:
+        return np.dtype('<f4')
+    elif val == np.float64:
+        return np.dtype('<f8')
+    elif val == np.complex64:
+        return np.dtype([('real','<f4'),('imag','<f4')])
+    elif val == np.complex128:
+        return np.dtype([('real','<f8'),('imag','<f8')])
+    else:
+        raise TypeError("Unsupported data type.")    
+    
 def fileinfo(fname):
     fid = h5py.File(fname,'r')
     retval = fid.keys()
@@ -117,7 +138,10 @@ class Dataset(object):
         if self._dataset_name not in self._file:
             raise LookupError("Dataset not found in the hdf5 file.")
         return self._file[self._dataset_name]
-        
+
+    def list(self):
+        return self._dataset.keys()
+    
     def close(self):
         if self._file.fid:
             self._file.close()
@@ -229,9 +253,36 @@ class Dataset(object):
         # put the attribute string
         self._dataset[impath]['attributes'][imnum] = im.attribute_string
         # put the data
+        self._dataset[impath]['data'][imnum] = im.data.view(dtype=get_hdf5type(im.data_type))
+
+    def number_of_arrays(self, arrpath):
+        if arrpath not in self._dataset:
+            raise LookupError("Array data not found in the dataset.")
+        return self._dataset[arrpath].shape[0]
+    
+    def read_array(self, arrpath, arrnum):
+        if arrpath not in self._dataset:
+            raise LookupError("Array data not found in the dataset.")
+        
+        # ismrmrd complex data is stored as pairs named real and imag
         # TODO do we need to store and reset or the config local to the module?
         cplxcfg = h5py.get_config().complex_names;
         h5py.get_config().complex_names = ('real','imag')
-        self._dataset[impath]['data'][imnum] = im.data
+        arr = np.copy(self._dataset[arrpath][arrnum])
         h5py.get_config().complex_names = cplxcfg
+
+        return arr
+    
+    def append_array(self, arrpath, arr):
+        # extend by 1
+        if arrpath in self._dataset:
+            arrnum = self._dataset[arrpath].shape[0]
+            self._dataset[arrpath].resize(arrnum+1,axis=0)
+        else:
+            maxshape = tuple(list(arr.shape).insert(0,None))
+            self._dataset.create_dataset(arrpath, (1,), maxshape=maxshpae, dtype=get_arrayhdf5type(arr.dtype))
+            arrnum = 0
+        
+        # put the data
+        self._dataset[arrpath][arrnum] = arr.view(dtype=get_arrayhdf5type(arr.dtype))
 
