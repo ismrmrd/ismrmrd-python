@@ -149,6 +149,18 @@ class Acquisition(object):
     def traj(self):
         return self.__traj.view()
 
+    def clearAllFlags(self):
+        self.flags = 0L
+        
+    def isFlagSet(self,val):
+        return self.__head.isFlagSet(val)
+
+    def setFlag(self,val):
+        self.__head.setFlag(val)
+
+    def clearFlag(self,val):
+        self.__head.clearFlag(val)
+        
     def __str__(self):
         retstr = ''
         retstr += 'Header:\n %s\n' % (self.__head)
