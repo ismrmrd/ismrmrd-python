@@ -134,7 +134,10 @@ class Dataset(object):
         self._dataset_name = dataset_name
 
     def __del__(self):
-        self._file.close()
+        try:
+            self.close()
+        except:
+            pass
         
     @property
     def _dataset(self):
@@ -146,8 +149,9 @@ class Dataset(object):
         return self._dataset.keys()
     
     def close(self):
-        if self._file.fid:
-            self._file.close()
+        #TODO do we want to flush the file?
+        #self._file.flush()
+        self._file.close()
 
     def read_xml_header(self):
         if 'xml' not in self._dataset:
