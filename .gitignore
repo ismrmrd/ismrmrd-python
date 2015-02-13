@@ -1,6 +1,6 @@
-ismrmrd.c
-*.so
+*~
 *.h5
+*.pyc
 MANIFEST
 build/
 dist/
