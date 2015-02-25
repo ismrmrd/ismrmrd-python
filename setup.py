@@ -15,7 +15,11 @@ class my_build_py(build_py):
         # honor the --dry-run flag
         if not self.dry_run:
             outloc = os.path.join(self.build_lib,'ismrmrd')
-            os.system('pyxbgen -u '+schema_file+' -m xsd --binding-root="'+outloc+'"')
+            modname = 'xsd'
+            modfile = os.path.join(outloc, '%s.py' % modname)
+            os.system('pyxbgen -u "%s" -m %s --binding-root="%s"' % (schema_file, modname, outloc))
+            with open(modfile, 'a') as f:
+                f.write('\nimport pyxb.utils.domutils\npyxb.utils.domutils.BindingDOMSupport.SetDefaultNamespace(Namespace)\n')
 
         # distutils uses old-style classes, so no super()
         build_py.run(self)
