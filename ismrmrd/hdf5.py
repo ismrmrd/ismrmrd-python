@@ -4,6 +4,9 @@ import ismrmrd
 
 from .constants import *
 
+# For Python 2.7 ctypes bug
+import warnings
+
 encoding_counters_dtype = np.dtype(
        [('kspace_encode_step_1', '<u2'),
         ('kspace_encode_step_2', '<u2'),
@@ -202,7 +205,12 @@ class Dataset(object):
         # create an empty hdf5 acquisition and fill it
         h5acq = np.empty((1,),dtype=acquisition_dtype)
         # copy the header
-        h5acq[0]['head'] = buffer(acq.getHead());
+
+        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            h5acq[0]['head'] = acq.getHead();
+        
         # copy the data as float
         h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*acq.active_channels*acq.number_of_samples,))
         
@@ -259,7 +267,12 @@ class Dataset(object):
         # put the header
         # this should probably be done better
         h5imhead = np.empty((1,),dtype=image_header_dtype)
-        h5imhead[0] = buffer(im.getHead()) 
+        
+        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            h5imhead[0] = buffer(im.getHead())
+        
         self._dataset[impath]['header'][imnum] = h5imhead[0]
         # put the attribute string
         self._dataset[impath]['attributes'][imnum] = im.attribute_string
