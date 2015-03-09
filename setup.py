@@ -80,6 +80,6 @@ setup(
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
     requires=['Cython', 'numpy', 'PyXB', 'h5py'],
-
-    cmdclass={'build_py':my_build_py,'build':my_build}
+    cmdclass={'build_py':my_build_py,'build':my_build},
+    include_package_data=True
 )
