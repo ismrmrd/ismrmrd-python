@@ -1,2 +1,7 @@
-ismrmrd.py
 setup.py
+ismrmrd/__init__.py
+ismrmrd/acquisition.py
+ismrmrd/constants.py
+ismrmrd/hdf5.py
+ismrmrd/image.py
+schema/ismrmrd.xsd
