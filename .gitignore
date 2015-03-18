@@ -5,3 +5,5 @@ MANIFEST
 build/
 dist/
 *.swp
+*.egg-info
+xsd.py

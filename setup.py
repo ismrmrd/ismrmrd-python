@@ -1,5 +1,5 @@
 import os
-from distutils.core import setup
+from setuptools import setup
 from distutils.command.build import build
 from distutils.command.build_py import build_py
 
@@ -19,7 +19,7 @@ class my_build_py(build_py):
     def run(self):
         # honor the --dry-run flag
         if not self.dry_run:
-            outloc = os.path.join(self.build_lib, 'ismrmrd')
+            outloc = self.get_package_dir('ismrmrd')
             modname = 'xsd'
             modfile = os.path.join(outloc, '%s.py' % modname)
             generate_schema(schema_file, modname, outloc)
@@ -79,7 +79,8 @@ setup(
         'Programming Language :: Cython',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
-    requires=['Cython', 'numpy', 'PyXB', 'h5py'],
-
+    install_requires=['PyXB', 'numpy', 'h5py'],
+    setup_requires=['nose>=1.0'],
+    test_suite='nose.collector',
     cmdclass={'build_py':my_build_py,'build':my_build}
 )

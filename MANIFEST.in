@@ -1,2 +1,1 @@
-ismrmrd.py
-setup.py
+include setup.py MANIFEST.in README
