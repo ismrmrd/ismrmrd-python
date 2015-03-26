@@ -76,7 +76,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: Public Domain',
         'Operating System :: OS Independent',
-        'Programming Language :: Cython',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
     install_requires=['PyXB', 'numpy', 'h5py'],
