@@ -78,8 +78,8 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
-    install_requires=['PyXB', 'numpy', 'h5py'],
-    setup_requires=['nose>=1.0'],
+    install_requires=['PyXB', 'numpy', 'h5py>=2.3'],
+    setup_requires=['nose>=1.0', 'pyxb'],
     test_suite='nose.collector',
     cmdclass={'build_py':my_build_py,'build':my_build}
 )
