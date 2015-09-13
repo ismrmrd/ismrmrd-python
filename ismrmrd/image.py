@@ -57,17 +57,17 @@ class ImageHeader(ctypes.Structure):
                 ("attribute_string_len", ctypes.c_uint32),]
 
     def clearAllFlags(self):
-        self.flags = 0L
+        self.flags = cytypes.c_uint64(0)
         
     def isFlagSet(self,val):
-        return ((self.flags & (1L << (val-1))) > 0)
+        return ((self.flags & (ctypes.c_uint64(1) << (val-1))) > 0)
 
     def setFlag(self,val):
-        self.flags |= (1L << (val-1))
+        self.flags |= (ctypes.c_uint64(1) << (val-1))
 
     def clearFlag(self,val):
         if self.isFlagSet(val):
-            bitmask = (1L << (val-1))
+            bitmask = (ctypes.c_uint64(1) << (val-1))
             self.flags -= bitmask
 
     def __str__(self):
