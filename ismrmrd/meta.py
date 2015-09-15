@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-import StringIO
+from io import StringIO
 
 class Meta(dict):
     """A wrapper around a `dict` that allows for serialization and

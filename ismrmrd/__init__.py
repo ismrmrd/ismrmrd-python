@@ -4,5 +4,5 @@ from .image import *
 from .hdf5 import Dataset
 from .meta import Meta
 
-import xsd
+from . import xsd
 __all__ = ['xsd']
