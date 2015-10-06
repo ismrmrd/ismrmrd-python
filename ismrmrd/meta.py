@@ -1,5 +1,9 @@
 import xml.etree.ElementTree as ET
-from io import StringIO
+
+try:
+    from StringIO import StringIO as strout
+except ImportError:
+    from io import BytesIO as strout
 
 class Meta(dict):
     """A wrapper around a `dict` that allows for serialization and
@@ -22,7 +26,7 @@ class Meta(dict):
                 value = ET.SubElement(child, 'value')
                 value.text = str(v)
         # this is a 'workaround' to get ElementTree to generate the XML declaration
-        output = StringIO.StringIO()
+        output = strout()
         tree.write(output, encoding="UTF-8", xml_declaration=True)
         return output.getvalue()
 

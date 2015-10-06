@@ -67,17 +67,17 @@ class AcquisitionHeader(ctypes.Structure):
         return retstr
         
     def clearAllFlags(self):
-        self.flags = cytypes.c_uint64(0)
+        self.flags = ctypes.c_uint64(0)
         
     def isFlagSet(self,val):
-        return ((self.flags & (cytypes.c_uint64(1) << (val-1))) > 0)
+        return ((self.flags & (ctypes.c_uint64(1).value << (val-1))) > 0)
 
     def setFlag(self,val):
-        self.flags |= (cytypes.c_uint64(1) << (val-1))
+        self.flags |= (ctypes.c_uint64(1).value << (val-1))
 
     def clearFlag(self,val):
         if self.isFlagSet(val):
-            bitmask = (cytypes.c_uint64(1) << (val-1))
+            bitmask = (ctypes.c_uint64(1).value << (val-1))
             self.flags -= bitmask
 
     #TODO channel mask functions
@@ -150,7 +150,7 @@ class Acquisition(object):
         return self.__traj.view()
 
     def clearAllFlags(self):
-        self.flags = cytypes.c_uint64(0)
+        self.flags = ctypes.c_uint64(0)
         
     def isFlagSet(self,val):
         return self.__head.isFlagSet(val)
