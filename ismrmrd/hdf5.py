@@ -78,6 +78,23 @@ image_header_dtype = np.dtype(
      ('user_float', '<f4', (8,)),
      ('attribute_string_len', '<u4')])
 
+
+waveform_header_dtype = np.dtype(
+    [('version', '<u2'),
+     ('flags', '<u8'),
+     ('measurement_uid', '<u4'),
+     ('scan_counter', '<u4'),
+     ('time_stamp', '<u4'),
+     ('number_of_samples', '<u2'),
+     ('channels', '<u2'),
+     ('sample_time_us', '<f4'),
+     ('waveform_id', '<u4')])
+
+waveform_dtype = np.dtype(
+    [('head', waveform_header_dtype),
+     ('data', h5py.special_dtype(vlen=np.dtype('uint32')))])
+
+
 # hdf5 data type lookup function
 def get_hdf5type(val):
     if val == DATATYPE_USHORT:
@@ -318,3 +335,47 @@ class Dataset(object):
         # put the data
         self._dataset[arrpath][arrnum] = arr.view(dtype=get_arrayhdf5type(arr.dtype))
 
+    def number_of_waveforms(self):
+        if 'waveforms' not in self._dataset:
+            raise LookupError("Acquisition data not found in the dataset.")
+        return self._dataset['waveforms'].size
+
+    def read_waveform(self, wavnum):
+        if 'waveforms' not in self._dataset:
+            raise LookupError("Acquisition data not found in the dataset.")
+
+        # create a Waveform
+        # and fill with the header for this waveform
+        wav = ismrmrd.Waveform(self._dataset['waveforms'][wavnum]['head'])
+
+        # copy the data as uint32
+        wav.data[:] = self._dataset['waveforms'][wavnum]['data'].view(np.uint32).reshape((wav.channels, wav.number_of_samples))[:]
+
+        return wav
+
+    def append_waveform(self, wav):
+        # create the dataset if needed
+        self._file.require_group(self._dataset_name)
+
+        # extend by 1
+        if 'waveform' in self._dataset:
+            wavnum = self._dataset['waveforms'].shape[0]
+            self._dataset['waveforms'].resize(wavnum+1,axis=0)
+        else:
+            self._dataset.create_dataset("waveforms", (1,), maxshape=(None,), dtype=waveform_dtype)
+            wavnum = 0
+
+        # create an empty hdf5 acquisition and fill it
+        h5wav = np.empty((1,),dtype=waveform_dtype)
+        # copy the header
+
+        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            h5wav[0]['head'] = wav.getHead();
+
+        # copy the data as float
+        h5wav[0]['data'] = wav.data.view(np.uint32).reshape(( wav.channels * wav.number_of_samples,))
+
+        # put it into the hdf5 file
+        self._dataset['data'][wavnum] = h5wav[0]
