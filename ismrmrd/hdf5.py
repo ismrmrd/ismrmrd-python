@@ -220,13 +220,13 @@ class Dataset(object):
             acqnum = 0
         
         # create an empty hdf5 acquisition and fill it
-        h5acq = np.empty((1,),dtype=acquisition_dtype)
+        h5acq = np.empty((1,), dtype=acquisition_dtype)
         # copy the header
 
         #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            h5acq[0]['head'] = acq.getHead();
+            h5acq[0]['head'] = acq.getHead()
         
         # copy the data as float
         h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*acq.active_channels*acq.number_of_samples,))
@@ -283,12 +283,12 @@ class Dataset(object):
         
         # put the header
         # this should probably be done better
-        h5imhead = np.empty((1,),dtype=image_header_dtype)
+        h5imhead = np.empty((1,), dtype=image_header_dtype)
         
         #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            h5imhead[0] = buffer(im.getHead())
+            h5imhead[0] = np.frombuffer(buffer(im.getHead()), dtype=image_header_dtype)
         
         self._dataset[impath]['header'][imnum] = h5imhead[0]
         # put the attribute string

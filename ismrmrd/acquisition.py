@@ -85,7 +85,33 @@ class AcquisitionHeader(ctypes.Structure):
 # Acquisition class
 class Acquisition(object):
     __readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
-    
+
+    @staticmethod
+    def from_array(data, trajectory=np.empty(shape=(0, 0), dtype=np.float32), **kwargs):
+
+        header = AcquisitionHeader()
+
+        nsamples, active_channels = data.shape
+        trajectory_dimensions, _ = trajectory.shape
+
+        array_data = {
+            'number_of_samples': nsamples,
+            'active_channels': active_channels,
+            'available_channels': active_channels,
+            'trajectory_dimensions': trajectory_dimensions
+        }
+
+        properties = dict(array_data, **kwargs)
+
+        for field in properties:
+            setattr(header, field, properties.get(field))
+
+        acquisition = Acquisition(header)
+        acquisition.data[:] = data
+        acquisition.traj[:] = trajectory
+
+        return acquisition
+
     def __init__(self, head = None):
         if head is None:
             self.__head = AcquisitionHeader()

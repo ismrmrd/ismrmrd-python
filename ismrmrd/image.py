@@ -1,30 +1,37 @@
+import itertools
 import ctypes
 import numpy as np
 import copy
 
+from .acquisition import Acquisition
 from .constants import *
 
-# Image data type lookup function
-def get_image_dtype(val):
-    if val == DATATYPE_USHORT:
-        return np.uint16
-    elif val == DATATYPE_SHORT:
-        return np.int16
-    elif val == DATATYPE_UINT:
-        return np.uint32
-    elif val == DATATYPE_INT:
-        return np.int
-    elif val == DATATYPE_FLOAT:
-        return np.float32
-    elif val == DATATYPE_DOUBLE:
-        return np.float64
-    elif val == DATATYPE_CXFLOAT:
-        return np.complex64
-    elif val == DATATYPE_CXDOUBLE:
-        return np.complex128
-    else:
-        raise TypeError("Unknown image data type.")
-    
+dtype_mapping = {
+    DATATYPE_USHORT: np.dtype('uint16'),
+    DATATYPE_SHORT: np.dtype('int16'),
+    DATATYPE_UINT: np.dtype('uint32'),
+    DATATYPE_INT: np.dtype('int'),
+    DATATYPE_FLOAT: np.dtype('float32'),
+    DATATYPE_DOUBLE: np.dtype('float64'),
+    DATATYPE_CXFLOAT: np.dtype('complex64'),
+    DATATYPE_CXDOUBLE: np.dtype('complex128')
+}
+inverse_dtype_mapping = {dtype_mapping.get(k): k for k in dtype_mapping}
+
+
+def get_dtype_from_data_type(val):
+    dtype = dtype_mapping.get(val)
+    if dtype is None:
+        raise TypeError("Unknown image data type: " + str(val))
+    return dtype
+
+
+def get_data_type_from_dtype(dtype):
+    type = inverse_dtype_mapping.get(dtype)
+    if type is None:
+        raise TypeError("Datatype not supported: " + str(dtype))
+    return type
+
 
 # Image Header
 class ImageHeader(ctypes.Structure):
@@ -56,6 +63,58 @@ class ImageHeader(ctypes.Structure):
                 ("user_float", ctypes.c_float * USER_FLOATS),
                 ("attribute_string_len", ctypes.c_uint32),]
 
+    @staticmethod
+    def from_acquisition(acquisition, **kwargs):
+        """
+        Initialize an ImageHeader from acquisition data.
+
+        :param acquisition: An acquisition.
+        :param kwargs: Additional header values. Accepted values are:
+
+         data_type
+         flags
+         matrix_size
+         field_of_view
+         channels
+         average
+         slice
+         contrast
+         phase
+         repetition
+         set
+         image_type
+         image_index
+         image_series_index
+         user_int
+         user_float
+         attribute_string_len
+
+        :return: An ImageHeader object.
+        """
+
+        header = ImageHeader()
+
+        # The value of these fields is copied over from the acquisition header.
+        acquisition_fields = [
+            'version',
+            'measurement_uid',
+            'position',
+            'read_dir',
+            'phase_dir',
+            'slice_dir',
+            'patient_table_position',
+            'acquisition_time_stamp',
+            'physiology_time_stamp',
+        ]
+
+        for field in acquisition_fields:
+            setattr(header, field, getattr(acquisition, field))
+
+        for field in kwargs:
+            setattr(header, field, kwargs.get(field))
+
+        return header
+
     def clearAllFlags(self):
         self.flags = ctypes.c_uint64(0)
         
@@ -85,23 +144,49 @@ class ImageHeader(ctypes.Structure):
 class Image(object):
     __readonly = ('data_type', 'matrix_size', 'channels', 'attribute_string_len')
     __ignore = ('matrix_size')
-    
+
+    @staticmethod
+    def from_array(array, acquisition=Acquisition(), **kwargs):
+
+        def shape_to_header_format(array):
+            shape = list(array.shape)
+            shape.reverse()
+
+            def with_defaults(first=1, second=1, third=1, nchannels=1):
+                return nchannels, (first, second, third)
+
+            return with_defaults(*shape)
+
+        nchannels, matrix_size = shape_to_header_format(array)
+
+        image_data = {
+            'data_type': get_data_type_from_dtype(array.dtype),
+            'channels': nchannels,
+            'matrix_size': matrix_size
+        }
+
+        header = ImageHeader.from_acquisition(acquisition, **dict(image_data, **kwargs))
+
+        image = Image(head=header)
+        image.data[:] = array
+
+        return image
+
     def __init__(self, head = None, attribute_string = ""):
         if head is None:
             self.__head = ImageHeader()
             self.__head.data_type = DATATYPE_CXFLOAT
-            self.__data = np.empty(shape=(1, 1, 1, 0), dtype=get_image_dtype(DATATYPE_CXFLOAT))
+            self.__data = np.empty(shape=(1, 1, 1, 0), dtype=get_dtype_from_data_type(DATATYPE_CXFLOAT))
         else:
             self.__head = ImageHeader.from_buffer_copy(head)
             self.__data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[2],
                                           self.__head.matrix_size[1], self.__head.matrix_size[0]),
-                                          dtype=get_image_dtype(self.__head.data_type))
+                                   dtype=get_dtype_from_data_type(self.__head.data_type))
 
         #TODO do we need to check if attribute_string is really a string?
         self.__attribute_string = attribute_string
         if (len(self.__attribute_string) != self.__head.attribute_string_len):
             raise ValueError("attribute_string and head.attribute_string_len are inconsistent.")
-        
 
         for (field, type) in self.__head._fields_:
             if field in self.__ignore:
@@ -146,7 +231,7 @@ class Image(object):
         self.resize(self.__head.channels, self.__head.matrix_size[2], self.__head.matrix_size[1], self.__head.matrix_size[0])
 
     def setDataType(self, val):
-        self.__data = self.__data.astype(get_image_dtype(val))
+        self.__data = self.__data.astype(get_dtype_from_data_type(val))
         
     def resize(self, nc, nz, ny, nx):
         self.__data = np.resize(self.__data, (nc, nz, ny, nx))

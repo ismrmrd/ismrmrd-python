@@ -49,6 +49,28 @@ class WaveformHeader(ctypes.Structure):
 class Waveform(object):
     __readonly = ('number_of_samples', 'channels')
 
+    @staticmethod
+    def from_array(data, **kwargs):
+
+        nsamples, channels = data.shape
+
+        array_data = {
+            'channels': channels,
+            'number_of_samples': nsamples
+        }
+
+        header = WaveformHeader()
+
+        properties = dict(array_data, **kwargs)
+
+        for field in properties:
+            setattr(header, field, properties.get(field))
+
+        waveform = Waveform(header)
+        waveform.data[:] = data
+
+        return waveform
+
     def __init__(self, head = None):
         if head is None:
             self.__head = WaveformHeader()
@@ -119,7 +141,6 @@ class Waveform(object):
     def __str__(self):
         retstr = ''
         retstr += 'Header:\n %s\n' % (self.__head)
-        retstr += 'Trajectory:\n %s\n' % (self.traj)
         retstr += 'Data:\n %s\n' % (self.data)
         return retstr
 
