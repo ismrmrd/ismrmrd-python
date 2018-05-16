@@ -1,10 +1,11 @@
 import ctypes
 import numpy as np
 import copy
+import io
 
 from .constants import *
 
-# EncodingCounters
+
 class EncodingCounters(ctypes.Structure):
     _pack_ = 2
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),
@@ -27,8 +28,8 @@ class EncodingCounters(ctypes.Structure):
             else:
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
-        
-# AcquisitionHeader
+
+
 class AcquisitionHeader(ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
@@ -81,27 +82,70 @@ class AcquisitionHeader(ctypes.Structure):
             self.flags -= bitmask
 
     #TODO channel mask functions
-            
-# Acquisition class
+
+
 class Acquisition(object):
     __readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
 
     @staticmethod
-    def from_array(data, trajectory=np.empty(shape=(0, 0), dtype=np.float32), **kwargs):
+    def deserialize_from(read_exactly):
 
-        header = AcquisitionHeader()
+        header_bytes = read_exactly(ctypes.sizeof(AcquisitionHeader))
+        acquisition = Acquisition(header_bytes)
 
-        nsamples, active_channels = data.shape
-        trajectory_dimensions, _ = trajectory.shape
+        trajectory_bytes = read_exactly(acquisition.number_of_samples *
+                                        acquisition.trajectory_dimensions *
+                                        ctypes.sizeof(ctypes.c_float))
+        data_bytes = read_exactly(acquisition.number_of_samples *
+                                  acquisition.active_channels *
+                                  ctypes.sizeof(ctypes.c_float * 2))
 
-        array_data = {
+        trajectory = np.frombuffer(trajectory_bytes, dtype=np.float32)
+        data = np.frombuffer(data_bytes, dtype=np.complex64)
+
+        acquisition.traj[:] = trajectory.reshape((acquisition.number_of_samples,
+                                                  acquisition.trajectory_dimensions))[:]
+        acquisition.data[:] = data.reshape((acquisition.active_channels,
+                                            acquisition.number_of_samples))[:]
+
+        return acquisition
+
+    def serialize_into(self, write):
+        write(self.__head)
+        write(self.__traj.tobytes())
+        write(self.__data.tobytes())
+
+    @staticmethod
+    def from_bytes(bytelike):
+        with io.BytesIO(bytelike) as stream:
+            return Acquisition.deserialize_from(stream.read)
+
+    def to_bytes(self):
+        with io.BytesIO() as stream:
+            self.serialize_into(stream.write)
+            return stream.getvalue()
+
+    @staticmethod
+    def from_array(data, trajectory=None, **kwargs):
+
+        nchannels, nsamples = data.shape
+
+        if trajectory is None:
+            trajectory = np.zeros(shape=(nsamples, 0), dtype=np.float32)
+
+        _, trajectory_dimensions = trajectory.shape
+
+        defaults = {
+            'version': 1,
             'number_of_samples': nsamples,
-            'active_channels': active_channels,
-            'available_channels': active_channels,
+            'active_channels': nchannels,
+            'available_channels': nchannels,
             'trajectory_dimensions': trajectory_dimensions
         }
 
-        properties = dict(array_data, **kwargs)
+        properties = dict(defaults, **kwargs)
+
+        header = AcquisitionHeader()
 
         for field in properties:
             setattr(header, field, properties.get(field))

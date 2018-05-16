@@ -218,16 +218,13 @@ class Dataset(object):
         else:
             self._dataset.create_dataset("data", (1,), maxshape=(None,), dtype=acquisition_dtype)
             acqnum = 0
-        
+
         # create an empty hdf5 acquisition and fill it
         h5acq = np.empty((1,), dtype=acquisition_dtype)
         # copy the header
 
-        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            h5acq[0]['head'] = acq.getHead()
-        
+        h5acq[0]['head'] = np.frombuffer(acq.getHead(), dtype=acquisition_header_dtype)
+
         # copy the data as float
         h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*acq.active_channels*acq.number_of_samples,))
         
@@ -280,17 +277,8 @@ class Dataset(object):
             self._dataset[impath].create_dataset("data", (1,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]),
                                                 maxshape=(None,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]), dtype=get_hdf5type(im.data_type))
             imnum = 0
-        
-        # put the header
-        # this should probably be done better
-        h5imhead = np.empty((1,), dtype=image_header_dtype)
-        
-        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            h5imhead[0] = np.frombuffer(buffer(im.getHead()), dtype=image_header_dtype)
-        
-        self._dataset[impath]['header'][imnum] = h5imhead[0]
+
+        self._dataset[impath]['header'][imnum] = np.frombuffer(im.getHead(), dtype=image_header_dtype)
         # put the attribute string
         self._dataset[impath]['attributes'][imnum] = im.attribute_string
         # put the data
@@ -369,10 +357,7 @@ class Dataset(object):
         h5wav = np.empty((1,),dtype=waveform_dtype)
         # copy the header
 
-        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            h5wav[0]['head'] = wav.getHead();
+        h5wav[0]['head'] = np.frombuffer(wav.getHead(), dtype=waveform_header_dtype);
 
         # copy the data as float
         h5wav[0]['data'] = wav.data.view(np.uint32).reshape(( wav.channels * wav.number_of_samples,))

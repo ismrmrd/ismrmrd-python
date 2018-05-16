@@ -3,10 +3,21 @@ import numpy as np
 import copy
 
 
+waveform_header_dtype = np.dtype(
+    [('version', '<u2'),
+     ('flags', '<u8'),
+     ('measurement_uid', '<u4'),
+     ('scan_counter', '<u4'),
+     ('time_stamp', '<u4'),
+     ('number_of_samples', '<u2'),
+     ('channels', '<u2'),
+     ('sample_time_us', '<f4'),
+     ('waveform_id', '<u2')])
+
+
 class WaveformHeader(ctypes.Structure):
-    _pack_ = 1
+    _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
-                ("__alignment_bits",ctypes.c_uint8 * 6), #Ctypes flatly refuses to replicate the hdf5 data layout, so instead we have pack bits.
                 ("flags", ctypes.c_uint64),
                 ("measurement_uid", ctypes.c_uint32),
                 ("scan_counter", ctypes.c_uint32),
@@ -52,7 +63,7 @@ class Waveform(object):
     @staticmethod
     def from_array(data, **kwargs):
 
-        nsamples, channels = data.shape
+        channels, nsamples = data.shape
 
         array_data = {
             'channels': channels,

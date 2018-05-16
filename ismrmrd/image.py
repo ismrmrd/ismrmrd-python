@@ -65,32 +65,6 @@ class ImageHeader(ctypes.Structure):
 
     @staticmethod
     def from_acquisition(acquisition, **kwargs):
-        """
-        Initialize an ImageHeader from acquisition data.
-
-        :param acquisition: An acquisition.
-        :param kwargs: Additional header values. Accepted values are:
-
-         data_type
-         flags
-         matrix_size
-         field_of_view
-         channels
-         average
-         slice
-         contrast
-         phase
-         repetition
-         set
-         image_type
-         image_index
-         image_series_index
-         user_int
-         user_float
-         attribute_string_len
-
-        :return: An ImageHeader object.
-        """
 
         header = ImageHeader()
 
@@ -144,6 +118,18 @@ class ImageHeader(ctypes.Structure):
 class Image(object):
     __readonly = ('data_type', 'matrix_size', 'channels', 'attribute_string_len')
     __ignore = ('matrix_size')
+
+    @staticmethod
+    def deserialize_from(read_exactly):
+        pass
+
+    def sesrialize_into(self, write):
+        pass
+
+    @staticmethod
+    def to_bytes():
+        pass
+
 
     @staticmethod
     def from_array(array, acquisition=Acquisition(), **kwargs):

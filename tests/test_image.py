@@ -2,11 +2,14 @@ import ismrmrd
 import ctypes
 import numpy as np
 
+import nose.tools
 from nose.tools import eq_
+
 
 def test_header():
     head = ismrmrd.ImageHeader()
     assert ctypes.sizeof(head) == 198
+
 
 def test_new_instance():
     img = ismrmrd.Image()
@@ -22,29 +25,14 @@ def test_new_instance():
     img = ismrmrd.Image(head, attribute_string=attr)
     eq_(img.attribute_string, attr)
 
+
+@nose.tools.raises(AttributeError)
 def test_read_only_fields():
     img = ismrmrd.Image()
 
     for field in ['data_type', 'matrix_size', 'channels', 'attribute_string_len']:
-        try:
-            setattr(img, field, None)
-        except:
-            pass
-        else:
-            assert False, "assigned to read-only field of Image"
+        setattr(img, field, None)
 
-def test_resize():
-    img = ismrmrd.Image()
-    nchan, nx, ny, nz = 8, 256, 128, 32
-    img.resize(nchan, nz, ny, nx)
-    eq_(img.data.shape, (nchan, nz, ny, nx))
-    eq_(img.matrix_size, (nz, ny, nx))
-    # TODO: address the following:
-    # head = img.getHead()
-    # eq_(head.channels, nchan)
-    # eq_(head.matrix_size[0], nx)
-    # eq_(head.matrix_size[1], ny)
-    # eq_(head.matrix_size[2], nz)
 
 def test_set_head():
     img = ismrmrd.Image()
@@ -62,29 +50,31 @@ def test_set_head():
     eq_(img.data_type, ismrmrd.DATATYPE_CXDOUBLE)
     eq_(img.data.dtype, np.complex128)
 
-# TODO: address the following:
-# def test_flags():
-#     img = ismrmrd.Image()
-#     eq_(img.flags, 0)
 
-#     for i in range(1, 65):
-#         eq_(img.isFlagSet(i), False)
+def test_resize():
+    pass
 
-#     for i in range(1, 65):
-#         img.setFlag(i)
-#         eq_(img.isFlagSet(i), True)
+def test_flags():
+    pass
 
-#     for i in range(1, 65):
-#         eq_(img.isFlagSet(i), True)
 
-#     for i in range(1, 65):
-#         img.clearFlag(i)
-#         eq_(img.isFlagSet(i), False)
+### HEADER
+# from_acquisition - defaults
+# from_acquisition - initialize with acquisition
+# from_acquisition - initialize with kwargs
 
-#     eq_(img.flags, 0)
-
-#     for i in range(1, 65):
-#         img.setFlag(i)
-#     img.clearAllFlags()
-#     for i in range(1, 65):
-#         eq_(img.isFlagSet(i), False)
+### IMAGE
+## Initialization
+# from_array - initialize with acquisition
+# from_array - initialize with array
+# from_array - initialize with acquisition and array
+# from_array - With various dim input array:
+#   - 2d
+#   - 3d
+#   - 2d + channels
+#   - 3d + channels
+## Serialization
+# deserialize_from
+# serialize_to
+# from_bytes
+# to_bytes
