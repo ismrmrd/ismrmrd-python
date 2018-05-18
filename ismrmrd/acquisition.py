@@ -4,6 +4,7 @@ import copy
 import io
 
 from .constants import *
+from .flags import FlagsMixin
 
 
 class EncodingCounters(ctypes.Structure):
@@ -30,7 +31,7 @@ class EncodingCounters(ctypes.Structure):
         return retstr
 
 
-class AcquisitionHeader(ctypes.Structure):
+class AcquisitionHeader(FlagsMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
@@ -55,7 +56,7 @@ class AcquisitionHeader(ctypes.Structure):
                 ("patient_table_position", ctypes.c_float * POSITION_LENGTH),
                 ("idx", EncodingCounters),
                 ("user_int", ctypes.c_int32 * USER_INTS),
-                ("user_float", ctypes.c_float * USER_FLOATS),]
+                ("user_float", ctypes.c_float * USER_FLOATS)]
 
     def __str__(self):
         retstr = ''
@@ -66,25 +67,9 @@ class AcquisitionHeader(ctypes.Structure):
             else:
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
-        
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
-        
-    def isFlagSet(self,val):
-        return ((self.flags & (ctypes.c_uint64(1).value << (val-1))) > 0)
-
-    def setFlag(self,val):
-        self.flags |= (ctypes.c_uint64(1).value << (val-1))
-
-    def clearFlag(self,val):
-        if self.isFlagSet(val):
-            bitmask = (ctypes.c_uint64(1).value << (val-1))
-            self.flags -= bitmask
-
-    #TODO channel mask functions
 
 
-class Acquisition(object):
+class Acquisition(FlagsMixin):
     __readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
 
     @staticmethod
@@ -219,18 +204,6 @@ class Acquisition(object):
     def traj(self):
         return self.__traj.view()
 
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
-        
-    def isFlagSet(self,val):
-        return self.__head.isFlagSet(val)
-
-    def setFlag(self,val):
-        self.__head.setFlag(val)
-
-    def clearFlag(self,val):
-        self.__head.clearFlag(val)
-        
     def __str__(self):
         retstr = ''
         retstr += 'Header:\n %s\n' % (self.__head)

@@ -88,7 +88,7 @@ waveform_header_dtype = np.dtype(
      ('number_of_samples', '<u2'),
      ('channels', '<u2'),
      ('sample_time_us', '<f4'),
-     ('waveform_id', '<u4')])
+     ('waveform_id', '<u2')])
 
 waveform_dtype = np.dtype(
     [('head', waveform_header_dtype),
@@ -345,22 +345,23 @@ class Dataset(object):
         # create the dataset if needed
         self._file.require_group(self._dataset_name)
 
-        # extend by 1
-        if 'waveform' in self._dataset:
+        if 'waveforms' in self._dataset:
             wavnum = self._dataset['waveforms'].shape[0]
             self._dataset['waveforms'].resize(wavnum+1,axis=0)
         else:
             self._dataset.create_dataset("waveforms", (1,), maxshape=(None,), dtype=waveform_dtype)
             wavnum = 0
 
+        np.frombuffer(wav.getHead(), dtype=waveform_header_dtype)
+
         # create an empty hdf5 acquisition and fill it
         h5wav = np.empty((1,),dtype=waveform_dtype)
         # copy the header
 
-        h5wav[0]['head'] = np.frombuffer(wav.getHead(), dtype=waveform_header_dtype);
+        h5wav[0]['head'] = np.frombuffer(wav.getHead(), dtype=waveform_header_dtype)
 
         # copy the data as float
         h5wav[0]['data'] = wav.data.view(np.uint32).reshape(( wav.channels * wav.number_of_samples,))
 
         # put it into the hdf5 file
-        self._dataset['data'][wavnum] = h5wav[0]
+        self._dataset['waveforms'][wavnum] = h5wav[0]

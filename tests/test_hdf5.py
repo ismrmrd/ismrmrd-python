@@ -16,44 +16,6 @@ import tempfile
 from test_common import *
 
 
-def create_random_acquisition(seed=42):
-
-    random.seed(seed)
-    numpy.random.seed(seed)
-
-    data = create_random_data((32, 256))
-    traj = create_random_trajectory((256, 2))
-    header = create_random_acquisition_properties()
-
-    return ismrmrd.Acquisition.from_array(data, traj, **header)
-
-
-def create_random_image(seed=42):
-
-    random.seed(seed)
-    numpy.random.seed(seed)
-
-    data = create_random_array((256, 256), dtype=np.float32)
-    header = create_random_image_properties()
-
-    image = ismrmrd.Image.from_array(data, **header)
-    image.attribute_string = "This is a random attribute: {}".format(random.randint(0, 1000))
-
-    return image
-
-
-def create_random_waveform(seed=42):
-
-    random.seed(seed)
-    numpy.random.seed(seed)
-
-    data = numpy.random.random_integers(0, 1 << 16, size=(4, 256))
-    data = data.astype(np.uint32)
-    header = create_random_waveform_properties()
-
-    return ismrmrd.Waveform.from_array(data, **header)
-
-
 temp_dir = None
 
 
@@ -119,11 +81,6 @@ def test_read_and_write_waveforms_to_hdf5():
     filename = os.path.join(temp_dir, 'read_write_waveforms.h5')
 
     waveforms = [create_random_waveform(seed) for seed in range(0, 128)]
-
-    print(ctypes.sizeof(ismrmrd.WaveformHeader))
-    print(ismrmrd.waveform_header_dtype.itemsize)
-
-
 
     dataset = ismrmrd.Dataset(filename)
     for waveform in waveforms:

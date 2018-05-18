@@ -2,8 +2,10 @@ import itertools
 import ctypes
 import numpy as np
 import copy
+import io
 
 from .acquisition import Acquisition
+from .flags import FlagsMixin
 from .constants import *
 
 dtype_mapping = {
@@ -34,7 +36,7 @@ def get_data_type_from_dtype(dtype):
 
 
 # Image Header
-class ImageHeader(ctypes.Structure):
+class ImageHeader(FlagsMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("data_type", ctypes.c_uint16),
@@ -79,6 +81,8 @@ class ImageHeader(ctypes.Structure):
             'patient_table_position',
             'acquisition_time_stamp',
             'physiology_time_stamp',
+            'user_int',
+            'user_float'
         ]
 
         for field in acquisition_fields:
@@ -88,20 +92,6 @@ class ImageHeader(ctypes.Structure):
             setattr(header, field, kwargs.get(field))
 
         return header
-
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
-        
-    def isFlagSet(self,val):
-        return ((self.flags & (ctypes.c_uint64(1).value << (val-1))) > 0)
-
-    def setFlag(self,val):
-        self.flags |= (ctypes.c_uint64(1).value << (val-1))
-
-    def clearFlag(self,val):
-        if self.isFlagSet(val):
-            bitmask = (ctypes.c_uint64(1).value << (val-1))
-            self.flags -= bitmask
 
     def __str__(self):
         retstr = ''
@@ -115,46 +105,79 @@ class ImageHeader(ctypes.Structure):
 
 
 # Image class
-class Image(object):
+class Image(FlagsMixin):
     __readonly = ('data_type', 'matrix_size', 'channels', 'attribute_string_len')
     __ignore = ('matrix_size')
 
     @staticmethod
     def deserialize_from(read_exactly):
-        pass
 
-    def sesrialize_into(self, write):
-        pass
+        header_bytes = read_exactly(ctypes.sizeof(ImageHeader))
+        attribute_length_bytes = read_exactly(ctypes.sizeof(ctypes.c_uint64))
+        attribute_length = ctypes.c_uint64.from_buffer_copy(attribute_length_bytes)
+        attribute_bytes = read_exactly(attribute_length.value)
+
+        image = Image(header_bytes, attribute_bytes.decode('utf-8'))
+
+        def calculate_number_of_entries(nchannels, xs, ys, zs):
+            return nchannels * xs * ys * zs
+
+        nentries = calculate_number_of_entries(image.channels, *image.matrix_size)
+        nbytes = nentries * get_dtype_from_data_type(image.data_type).itemsize
+
+        data_bytes = read_exactly(nbytes)
+
+        image.data.ravel()[:] = np.frombuffer(data_bytes, dtype=get_dtype_from_data_type(image.data_type))
+
+        return image
+
+    def serialize_into(self, write):
+
+        attribute_bytes = self.attribute_string.encode('utf-8')
+
+        write(self.__head)
+
+        write(ctypes.c_uint64(len(attribute_bytes)))
+        write(attribute_bytes)
+
+        write(self.__data.tobytes())
 
     @staticmethod
-    def to_bytes():
-        pass
+    def from_bytes(bytelike):
+        with io.BytesIO(bytelike) as stream:
+            return Image.deserialize_from(stream.read)
 
+    def to_bytes(self):
+        with io.BytesIO() as stream:
+            self.serialize_into(stream.write)
+            return stream.getvalue()
 
     @staticmethod
     def from_array(array, acquisition=Acquisition(), **kwargs):
 
-        def shape_to_header_format(array):
-            shape = list(array.shape)
-            shape.reverse()
+        def input_shape_to_header_format(array):
 
             def with_defaults(first=1, second=1, third=1, nchannels=1):
                 return nchannels, (first, second, third)
 
-            return with_defaults(*shape)
+            return with_defaults(*array.shape)
 
-        nchannels, matrix_size = shape_to_header_format(array)
+        def header_format_to_resize_shape(nchannels, first, second, third):
+                return nchannels, third, second, first
 
-        image_data = {
+        nchannels, matrix_size = input_shape_to_header_format(array)
+
+        image_properties = {
+            'version': 1,
             'data_type': get_data_type_from_dtype(array.dtype),
             'channels': nchannels,
             'matrix_size': matrix_size
         }
 
-        header = ImageHeader.from_acquisition(acquisition, **dict(image_data, **kwargs))
+        header = ImageHeader.from_acquisition(acquisition, **dict(image_properties, **kwargs))
 
         image = Image(head=header)
-        image.data[:] = array
+        image.data[:] = np.resize(array.transpose(), header_format_to_resize_shape(nchannels, *matrix_size))
 
         return image
 
@@ -231,8 +254,8 @@ class Image(object):
         return self.__attribute_string
     
     @attribute_string.setter
-    def attribute_string(self,val):
-        self.__attribute_string = str(val)
+    def attribute_string(self, val):
+        self.__attribute_string = val
         self.__head.attribute_string_len = len(self.__attribute_string)
         
     @property

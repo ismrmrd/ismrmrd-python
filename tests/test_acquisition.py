@@ -1,14 +1,13 @@
 import ismrmrd
 import ctypes
 import numpy as np
-import numpy.random as random
 
 import io
 import nose.tools
 
 from nose.tools import eq_
 
-from test_common import *
+import test_common as common
 
 
 def test_encoding_counters():
@@ -32,11 +31,11 @@ def test_new_instance():
 
 def test_read_only_fields():
     acq = ismrmrd.Acquisition()
-    # test read-only fields
+
     for field in ['number_of_samples', 'active_channels', 'trajectory_dimensions']:
         try:
             setattr(acq, field, None)
-        except:
+        except AttributeError:
             pass
         else:
             assert False, "assigned to read-only field of Acquisition"
@@ -70,53 +69,67 @@ def test_set_head():
 
 def test_flags():
     acq = ismrmrd.Acquisition()
+
+    for i in range(1, 65):
+        assert not acq.is_flag_set(i), \
+            "Expected flag {} to not be set.".format(i)
+
+    for i in range(1, 65):
+        acq.set_flag(i)
+        assert acq.is_flag_set(i), \
+            "Expected flag {} to be set.".format(i)
+
+    for i in range(1, 65):
+        acq.clear_flag(i)
+        assert not acq.is_flag_set(i), \
+            "Expected flag {} to not be set.".format(i)
+
     eq_(acq.flags, 0)
 
     for i in range(1, 65):
-        eq_(acq.isFlagSet(i), False)
+        acq.set_flag(i)
+
+    acq.clear_all_flags()
 
     for i in range(1, 65):
-        acq.setFlag(i)
-        eq_(acq.isFlagSet(i), True)
-
-    for i in range(1, 65):
-        eq_(acq.isFlagSet(i), True)
-
-    for i in range(1, 65):
-        acq.clearFlag(i)
-        eq_(acq.isFlagSet(i), False)
-
-    eq_(acq.flags, 0)
-
-    for i in range(1, 65):
-        acq.setFlag(i)
-    acq.clearAllFlags()
-    for i in range(1, 65):
-        eq_(acq.isFlagSet(i), False)
+        assert not acq.is_flag_set(i), \
+            "Expected flag {} to not be set.".format(i)
 
 
-@nose.tools.with_setup(setup=seed_random_generators)
+def test_clearing_unset_flag_does_not_set_other_flags():
+    acquisition = ismrmrd.Acquisition()
+
+    assert acquisition.flags == 0, \
+        "Fresh acquisitions should not have any flags set."
+
+    acquisition.clearFlag(ismrmrd.ACQ_FIRST_IN_ENCODE_STEP1)
+
+    assert acquisition.flags == 0, \
+        "Clearing an unset flag sets other flags."
+
+
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_from_array():
 
     nchannels = 32
     nsamples = 256
 
-    data = create_random_data((nchannels, nsamples))
+    data = common.create_random_data((nchannels, nsamples))
     acquisition = ismrmrd.Acquisition.from_array(data)
 
     assert np.array_equal(acquisition.data, data), \
         "Acquisition data does not match data used to initialize acquisition."
 
 
-@nose.tools.with_setup(setup=seed_random_generators)
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_from_arrays():
 
     nchannels = 32
     nsamples = 256
     trajectory_dimensions = 2
 
-    data = create_random_data((nchannels, nsamples))
-    trajectory = create_random_trajectory((nsamples, trajectory_dimensions))
+    data = common.create_random_data((nchannels, nsamples))
+    trajectory = common.create_random_trajectory((nsamples, trajectory_dimensions))
 
     acquisition = ismrmrd.Acquisition.from_array(data, trajectory)
 
@@ -127,16 +140,16 @@ def test_initialization_from_arrays():
         "Acquisition trajectory does not match trajectory used to initialize acquisition."
 
 
-@nose.tools.with_setup(setup=seed_random_generators)
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_sets_nonzero_version():
 
-    acquisition = ismrmrd.Acquisition.from_array(create_random_data())
+    acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
     assert acquisition.version is not 0, \
         "Default acquisition version should not be zero."
 
 
-@nose.tools.with_setup(setup=seed_random_generators)
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_with_header_fields():
 
     fields = {
@@ -145,7 +158,7 @@ def test_initialization_with_header_fields():
         'available_channels': 64,
     }
 
-    data = create_random_data()
+    data = common.create_random_data()
     acquisition = ismrmrd.Acquisition.from_array(data, **fields)
 
     for field in fields:
@@ -157,12 +170,13 @@ def test_initialization_with_header_fields():
 
 @nose.tools.raises(TypeError)
 def test_initialization_with_illegal_header_value():
-    ismrmrd.Acquisition.from_array(create_random_data(), version='Bad version')
+    ismrmrd.Acquisition.from_array(common.create_random_data(), version='Bad version')
 
 
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialize_and_deserialize():
 
-    acquisition = ismrmrd.Acquisition.from_array(create_random_data())
+    acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
     with io.BytesIO() as stream:
         acquisition.serialize_into(stream.write)
@@ -172,30 +186,30 @@ def test_serialize_and_deserialize():
 
         deserialized_acquisition = ismrmrd.Acquisition.deserialize_from(stream.read)
 
-        compare_acquisitions(acquisition, deserialized_acquisition)
+        common.compare_acquisitions(acquisition, deserialized_acquisition)
 
 
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_to_and_from_bytes():
 
-    acquisition = ismrmrd.Acquisition.from_array(create_random_data())
+    acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
     deserialized_acquisition = ismrmrd.Acquisition.from_bytes(acquisition.to_bytes())
 
-    compare_acquisitions(acquisition, deserialized_acquisition)
+    common.compare_acquisitions(acquisition, deserialized_acquisition)
 
 
-
-
+@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialization_with_header_fields():
 
-    properties = create_random_acquisition_properties()
-    data = create_random_data()
-    trajectory = create_random_trajectory()
+    properties = common.create_random_acquisition_properties()
+    data = common.create_random_data()
+    trajectory = common.create_random_trajectory()
 
     acquisition = ismrmrd.Acquisition.from_array(data, trajectory, **properties)
     deserialized_acquisition = ismrmrd.Acquisition.from_bytes(acquisition.to_bytes())
 
-    compare_acquisitions(acquisition, deserialized_acquisition)
+    common.compare_acquisitions(acquisition, deserialized_acquisition)
 
 
 @nose.tools.raises(ValueError)

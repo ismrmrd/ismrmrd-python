@@ -1,21 +1,12 @@
 import ctypes
 import numpy as np
 import copy
+import io
+
+from .flags import FlagsMixin
 
 
-waveform_header_dtype = np.dtype(
-    [('version', '<u2'),
-     ('flags', '<u8'),
-     ('measurement_uid', '<u4'),
-     ('scan_counter', '<u4'),
-     ('time_stamp', '<u4'),
-     ('number_of_samples', '<u2'),
-     ('channels', '<u2'),
-     ('sample_time_us', '<f4'),
-     ('waveform_id', '<u2')])
-
-
-class WaveformHeader(ctypes.Structure):
+class WaveformHeader(FlagsMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
@@ -40,25 +31,39 @@ class WaveformHeader(ctypes.Structure):
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
 
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
 
-    def isFlagSet(self, val):
-        return ((self.flags & (ctypes.c_uint64(1).value << (val - 1))) > 0)
-
-    def setFlag(self, val):
-        self.flags |= (ctypes.c_uint64(1).value << (val - 1))
-
-    def clearFlag(self, val):
-        if self.isFlagSet(val):
-            bitmask = (ctypes.c_uint64(1).value << (val - 1))
-            self.flags -= bitmask
-
-    # TODO channel mask functions
-
-
-class Waveform(object):
+class Waveform(FlagsMixin):
     __readonly = ('number_of_samples', 'channels')
+
+
+    @staticmethod
+    def deserialize_from(read_exactly):
+
+        header_bytes = read_exactly(ctypes.sizeof(WaveformHeader))
+        waveform = Waveform(header_bytes)
+
+        data_bytes = read_exactly(waveform.channels *
+                                  waveform.number_of_samples *
+                                  ctypes.sizeof(ctypes.c_uint32))
+
+        waveform.data.ravel()[:] = np.frombuffer(data_bytes, dtype=np.uint32)
+
+        return waveform
+
+    def serialize_into(self, write):
+        write(self.__head)
+        write(self.__data.tobytes())
+
+    @staticmethod
+    def from_bytes(bytelike):
+        with io.BytesIO(bytelike) as stream:
+            return Waveform.deserialize_from(stream.read)
+
+    def to_bytes(self):
+        with io.BytesIO() as stream:
+            self.serialize_into(stream.write)
+            return stream.getvalue()
+
 
     @staticmethod
     def from_array(data, **kwargs):
@@ -66,6 +71,7 @@ class Waveform(object):
         channels, nsamples = data.shape
 
         array_data = {
+            'version': 1,
             'channels': channels,
             'number_of_samples': nsamples
         }
@@ -136,18 +142,6 @@ class Waveform(object):
     @property
     def data(self):
         return self.__data.view()
-
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
-
-    def isFlagSet(self,val):
-        return self.__head.isFlagSet(val)
-
-    def setFlag(self,val):
-        self.__head.setFlag(val)
-
-    def clearFlag(self,val):
-        self.__head.clearFlag(val)
 
     def __str__(self):
         retstr = ''
