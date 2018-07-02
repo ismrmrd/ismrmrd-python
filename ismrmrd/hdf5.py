@@ -88,7 +88,7 @@ waveform_header_dtype = np.dtype(
      ('number_of_samples', '<u2'),
      ('channels', '<u2'),
      ('sample_time_us', '<f4'),
-     ('waveform_id', '<u4')])
+     ('waveform_id', '<u2')])
 
 waveform_dtype = np.dtype(
     [('head', waveform_header_dtype),
@@ -218,16 +218,13 @@ class Dataset(object):
         else:
             self._dataset.create_dataset("data", (1,), maxshape=(None,), dtype=acquisition_dtype)
             acqnum = 0
-        
+
         # create an empty hdf5 acquisition and fill it
-        h5acq = np.empty((1,),dtype=acquisition_dtype)
+        h5acq = np.empty((1,), dtype=acquisition_dtype)
         # copy the header
 
-        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            h5acq[0]['head'] = acq.getHead();
-        
+        h5acq[0]['head'] = np.frombuffer(acq.getHead(), dtype=acquisition_header_dtype)
+
         # copy the data as float
         h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*acq.active_channels*acq.number_of_samples,))
         
@@ -280,17 +277,8 @@ class Dataset(object):
             self._dataset[impath].create_dataset("data", (1,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]),
                                                 maxshape=(None,im.data.shape[0],im.data.shape[1],im.data.shape[2],im.data.shape[3]), dtype=get_hdf5type(im.data_type))
             imnum = 0
-        
-        # put the header
-        # this should probably be done better
-        h5imhead = np.empty((1,),dtype=image_header_dtype)
-        
-        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            h5imhead[0] = buffer(im.getHead())
-        
-        self._dataset[impath]['header'][imnum] = h5imhead[0]
+
+        self._dataset[impath]['header'][imnum] = np.frombuffer(im.getHead(), dtype=image_header_dtype)
         # put the attribute string
         self._dataset[impath]['attributes'][imnum] = im.attribute_string
         # put the data
@@ -357,25 +345,23 @@ class Dataset(object):
         # create the dataset if needed
         self._file.require_group(self._dataset_name)
 
-        # extend by 1
-        if 'waveform' in self._dataset:
+        if 'waveforms' in self._dataset:
             wavnum = self._dataset['waveforms'].shape[0]
             self._dataset['waveforms'].resize(wavnum+1,axis=0)
         else:
             self._dataset.create_dataset("waveforms", (1,), maxshape=(None,), dtype=waveform_dtype)
             wavnum = 0
 
+        np.frombuffer(wav.getHead(), dtype=waveform_header_dtype)
+
         # create an empty hdf5 acquisition and fill it
         h5wav = np.empty((1,),dtype=waveform_dtype)
         # copy the header
 
-        #Python 2.7 has a bug in ctypes buffer size http://bugs.python.org/issue10744
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            h5wav[0]['head'] = wav.getHead();
+        h5wav[0]['head'] = np.frombuffer(wav.getHead(), dtype=waveform_header_dtype)
 
         # copy the data as float
         h5wav[0]['data'] = wav.data.view(np.uint32).reshape(( wav.channels * wav.number_of_samples,))
 
         # put it into the hdf5 file
-        self._dataset['data'][wavnum] = h5wav[0]
+        self._dataset['waveforms'][wavnum] = h5wav[0]

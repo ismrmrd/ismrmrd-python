@@ -1,10 +1,12 @@
 import ctypes
 import numpy as np
 import copy
+import io
 
 from .constants import *
+from .flags import FlagsMixin
 
-# EncodingCounters
+
 class EncodingCounters(ctypes.Structure):
     _pack_ = 2
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),
@@ -27,9 +29,9 @@ class EncodingCounters(ctypes.Structure):
             else:
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
-        
-# AcquisitionHeader
-class AcquisitionHeader(ctypes.Structure):
+
+
+class AcquisitionHeader(FlagsMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
@@ -54,7 +56,7 @@ class AcquisitionHeader(ctypes.Structure):
                 ("patient_table_position", ctypes.c_float * POSITION_LENGTH),
                 ("idx", EncodingCounters),
                 ("user_int", ctypes.c_int32 * USER_INTS),
-                ("user_float", ctypes.c_float * USER_FLOATS),]
+                ("user_float", ctypes.c_float * USER_FLOATS)]
 
     def __str__(self):
         retstr = ''
@@ -65,27 +67,80 @@ class AcquisitionHeader(ctypes.Structure):
             else:
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
-        
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
-        
-    def isFlagSet(self,val):
-        return ((self.flags & (ctypes.c_uint64(1).value << (val-1))) > 0)
 
-    def setFlag(self,val):
-        self.flags |= (ctypes.c_uint64(1).value << (val-1))
 
-    def clearFlag(self,val):
-        if self.isFlagSet(val):
-            bitmask = (ctypes.c_uint64(1).value << (val-1))
-            self.flags -= bitmask
-
-    #TODO channel mask functions
-            
-# Acquisition class
-class Acquisition(object):
+class Acquisition(FlagsMixin):
     __readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
-    
+
+    @staticmethod
+    def deserialize_from(read_exactly):
+
+        header_bytes = read_exactly(ctypes.sizeof(AcquisitionHeader))
+        acquisition = Acquisition(header_bytes)
+
+        trajectory_bytes = read_exactly(acquisition.number_of_samples *
+                                        acquisition.trajectory_dimensions *
+                                        ctypes.sizeof(ctypes.c_float))
+        data_bytes = read_exactly(acquisition.number_of_samples *
+                                  acquisition.active_channels *
+                                  ctypes.sizeof(ctypes.c_float * 2))
+
+        trajectory = np.frombuffer(trajectory_bytes, dtype=np.float32)
+        data = np.frombuffer(data_bytes, dtype=np.complex64)
+
+        acquisition.traj[:] = trajectory.reshape((acquisition.number_of_samples,
+                                                  acquisition.trajectory_dimensions))[:]
+        acquisition.data[:] = data.reshape((acquisition.active_channels,
+                                            acquisition.number_of_samples))[:]
+
+        return acquisition
+
+    def serialize_into(self, write):
+        write(self.__head)
+        write(self.__traj.tobytes())
+        write(self.__data.tobytes())
+
+    @staticmethod
+    def from_bytes(bytelike):
+        with io.BytesIO(bytelike) as stream:
+            return Acquisition.deserialize_from(stream.read)
+
+    def to_bytes(self):
+        with io.BytesIO() as stream:
+            self.serialize_into(stream.write)
+            return stream.getvalue()
+
+    @staticmethod
+    def from_array(data, trajectory=None, **kwargs):
+
+        nchannels, nsamples = data.shape
+
+        if trajectory is None:
+            trajectory = np.zeros(shape=(nsamples, 0), dtype=np.float32)
+
+        _, trajectory_dimensions = trajectory.shape
+
+        defaults = {
+            'version': 1,
+            'number_of_samples': nsamples,
+            'active_channels': nchannels,
+            'available_channels': nchannels,
+            'trajectory_dimensions': trajectory_dimensions
+        }
+
+        properties = dict(defaults, **kwargs)
+
+        header = AcquisitionHeader()
+
+        for field in properties:
+            setattr(header, field, properties.get(field))
+
+        acquisition = Acquisition(header)
+        acquisition.data[:] = data
+        acquisition.traj[:] = trajectory
+
+        return acquisition
+
     def __init__(self, head = None):
         if head is None:
             self.__head = AcquisitionHeader()
@@ -149,18 +204,6 @@ class Acquisition(object):
     def traj(self):
         return self.__traj.view()
 
-    def clearAllFlags(self):
-        self.flags = ctypes.c_uint64(0)
-        
-    def isFlagSet(self,val):
-        return self.__head.isFlagSet(val)
-
-    def setFlag(self,val):
-        self.__head.setFlag(val)
-
-    def clearFlag(self,val):
-        self.__head.clearFlag(val)
-        
     def __str__(self):
         retstr = ''
         retstr += 'Header:\n %s\n' % (self.__head)
