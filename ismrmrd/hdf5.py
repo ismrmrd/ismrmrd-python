@@ -88,7 +88,7 @@ waveform_header_dtype = np.dtype(
      ('number_of_samples', '<u2'),
      ('channels', '<u2'),
      ('sample_time_us', '<f4'),
-     ('waveform_id', '<u2')])
+     ('waveform_id', '<u2')],align=True)
 
 waveform_dtype = np.dtype(
     [('head', waveform_header_dtype),
@@ -334,7 +334,8 @@ class Dataset(object):
 
         # create a Waveform
         # and fill with the header for this waveform
-        wav = ismrmrd.Waveform(self._dataset['waveforms'][wavnum]['head'])
+        #HDF5 does not guarantee data alignment, so we must copy into a numpy array. *sigh*
+        wav = ismrmrd.Waveform(np.array(self._dataset['waveforms'][wavnum]['head'],dtype=waveform_header_dtype))
 
         # copy the data as uint32
         wav.data[:] = self._dataset['waveforms'][wavnum]['data'].view(np.uint32).reshape((wav.channels, wav.number_of_samples))[:]

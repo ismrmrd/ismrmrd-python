@@ -2,6 +2,7 @@
 
 import ismrmrd
 
+
 import nose.tools
 
 import random
@@ -95,3 +96,6 @@ def test_read_and_write_waveforms_to_hdf5():
     read_waveforms = [dataset.read_waveform(i) for i in range(0, nwaveforms)]
 
     map(lambda wav_a, wav_b: compare_waveforms(wav_a, wav_b), waveforms, read_waveforms)
+
+def test_waveform_hdf5_size():
+    assert ismrmrd.hdf5.waveform_header_dtype.itemsize == 40
