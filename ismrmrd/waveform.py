@@ -7,7 +7,7 @@ from .flags import FlagsMixin
 
 
 class WaveformHeader(FlagsMixin, ctypes.Structure):
-    _pack_ = 2
+    _pack_ = 8
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
                 ("measurement_uid", ctypes.c_uint32),
@@ -88,13 +88,17 @@ class Waveform(FlagsMixin):
 
         return waveform
 
-    def __init__(self, head = None):
+    def __init__(self, head = None,data = None):
         if head is None:
             self.__head = WaveformHeader()
             self.__data = np.empty(shape=(1, 0), dtype=np.uint32)
         else:
             self.__head = WaveformHeader.from_buffer_copy(head)
             self.__data = np.empty(shape=(self.__head.channels, self.__head.number_of_samples), dtype=np.uint32)
+
+            if data is not None:
+                self.data[:] = data.reshape((self.__head.channels,self.__head.number_of_samples),order="C")
+
 
         for (field, type) in self.__head._fields_:
             try:

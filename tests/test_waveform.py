@@ -1,5 +1,6 @@
 
 import ismrmrd
+import ctypes
 
 import numpy as np
 import numpy.random
@@ -9,7 +10,6 @@ import io
 import nose.tools
 
 import test_common as common
-
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_from_array():
@@ -96,3 +96,9 @@ def test_serialization_with_header_fields():
 @nose.tools.raises(ValueError)
 def test_deserialization_from_too_few_bytes():
     ismrmrd.Acquisition.from_bytes(b'')
+
+
+def test_waveformheader_size():
+    wav = ismrmrd.WaveformHeader()
+    assert ctypes.sizeof(wav) == 40
+
