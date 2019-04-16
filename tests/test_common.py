@@ -168,7 +168,13 @@ def compare_images(image, *images):
 
 def compare_waveforms(waveform, *waveforms):
 
+    print(waveform.getHead())
+    print(bytes(waveform.getHead()))
+
     for other in waveforms:
+
+        print(other.getHead())
+        print(bytes(other.getHead()))
 
         assert bytes(waveform.getHead()) == bytes(other.getHead()), \
             "Waveform header does not match."
