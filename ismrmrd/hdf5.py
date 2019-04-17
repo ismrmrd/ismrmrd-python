@@ -333,7 +333,11 @@ class Dataset(object):
         # create a Waveform
         # and fill with the header for this waveform
         # HDF5 does not guarantee data alignment, so we must copy into a numpy array. *sigh*
-        wav = ismrmrd.Waveform(np.array(self._dataset['waveforms'][wavnum]['head'],dtype=waveform_header_dtype))
+        # We start with an array of zeros to avoid garbage in the padding bytes.
+        header_array = np.zeros((1, ), dtype=waveform_header_dtype)
+        header_array[0] = self._dataset['waveforms'][wavnum]['head']
+
+        wav = ismrmrd.Waveform(header_array)
 
         # copy the data as uint32
         wav.data[:] = self._dataset['waveforms'][wavnum]['data'].view(np.uint32).reshape((wav.channels, wav.number_of_samples))[:]

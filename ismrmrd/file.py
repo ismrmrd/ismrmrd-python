@@ -58,6 +58,9 @@ class Container:
 
     def __set_acquisitions(self, acquisitions):
 
+        if self.has_images():
+            raise TypeError("Cannot add acquisitions when images are present.")
+
         def as_numpy_structure(acq):
             return (
                 np.frombuffer(acq.getHead(), dtype=acquisition_header_dtype),
@@ -80,8 +83,14 @@ class Container:
         data = self.__contents.get('waveforms', [])
 
         for raw in data:
-            # Notice the array. Lovely.
-            waveform = Waveform(numpy.array(raw['head'], dtype=waveform_header_dtype))
+            # This lovely roundabout way of reading a waveform header is due largely to h5's handling
+            # of padding and alignment. Nu guarantees are given, so we need create a structured array
+            # with a header to have the contents is filled in correctly. We start with an array of
+            # zeroes to avoid garbage in the padding bytes.
+            header_array = numpy.zeros((1, ), dtype=waveform_header_dtype)
+            header_array[0] = raw['head']
+
+            waveform = Waveform(header_array)
             waveform.data[:] = raw['data'].view(np.uint32).reshape(
                 (waveform.channels,
                  waveform.number_of_samples)
@@ -90,6 +99,9 @@ class Container:
             yield waveform
 
     def __set_waveforms(self, waveforms):
+
+        if self.has_images():
+            raise TypeError("Cannot add waveforms when images are present.")
 
         def as_numpy_structure(wav):
             return (
@@ -120,6 +132,9 @@ class Container:
 
     def __set_images(self, images):
 
+        if self.has_data():
+            raise TypeError("Cannot add images when data is present.")
+
         images = list(images)
 
         data = numpy.stack([image.data for image in images])
@@ -141,6 +156,9 @@ class Container:
 
     def has_images(self):
         return all((key in self.__contents for key in ['data', 'headers', 'attributes']))
+
+    def has_data(self):
+        return any((self.has_acquisitions(), self.has_waveforms()))
 
     def has_waveforms(self):
         return 'waveforms' in self.__contents

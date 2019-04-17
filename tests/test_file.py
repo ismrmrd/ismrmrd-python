@@ -104,4 +104,51 @@ def test_file_can_list_contained_images():
         assert(file.find_data() == {'dataset'})
 
 
+@nose.tools.raises(TypeError)
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_cannot_write_image_on_data():
+
+    filename = os.path.join(temp_dir, "file.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = random_acquisitions(10)
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.images = random_images(1)
+
+
+@nose.tools.raises(TypeError)
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_cannot_write_data_on_image():
+
+    filename = os.path.join(temp_dir, "file.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.images = random_images(1)
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = random_acquisitions(10)
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_rewrite_data_and_images():
+    filename = os.path.join(temp_dir, "file.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = random_acquisitions(20)
+        dataset.acquisitions = random_acquisitions(10)
+        dataset.waveforms = random_waveforms(10)
+        dataset.waveforms = random_waveforms(5)
+        dataset.acquisitions = random_acquisitions(5)
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/images']
+        imageset.images = random_images(1)
+        imageset.images = random_images(2)
+        imageset.images = random_images(3)
 
