@@ -4,8 +4,9 @@ import nose.tools
 
 import shutil
 import os.path
-
 import tempfile
+
+import numpy
 
 from test_common import *
 
@@ -136,6 +137,7 @@ def test_file_cannot_write_data_on_image():
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_file_can_rewrite_data_and_images():
+
     filename = os.path.join(temp_dir, "file.h5")
 
     with ismrmrd.File(filename) as file:
@@ -152,3 +154,97 @@ def test_file_can_rewrite_data_and_images():
         imageset.images = random_images(2)
         imageset.images = random_images(3)
 
+
+example_header = """<?xml version="1.0" encoding="utf-8"?>
+<ismrmrdHeader xmlns="http://www.ismrm.org/ISMRMRD" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd">
+   <experimentalConditions>
+      <H1resonanceFrequency_Hz>32130323</H1resonanceFrequency_Hz>
+   </experimentalConditions>
+   <encoding>
+      <encodedSpace>
+         <matrixSize>
+            <x>64</x>
+            <y>64</y>
+            <z>1</z>
+         </matrixSize>
+         <fieldOfView_mm>
+            <x>300</x>
+            <y>300</y>
+            <z>40</z>
+         </fieldOfView_mm>
+      </encodedSpace>
+      <reconSpace>
+         <matrixSize>
+            <x>64</x>
+            <y>64</y>
+            <z>1</z>
+         </matrixSize>
+         <fieldOfView_mm>
+            <x>300</x>
+            <y>300</y>
+            <z>40</z>
+         </fieldOfView_mm>
+      </reconSpace>
+      <trajectory>radial</trajectory>
+      <encodingLimits>
+      </encodingLimits>
+   </encoding>
+</ismrmrdHeader>
+"""
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_read_and_write_headers():
+
+    filename = os.path.join(temp_dir, "file.h5")
+    header = ismrmrd.xsd.CreateFromDocument(example_header)
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.header = header
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        assert header.toxml() == dataset.header.toxml()
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_read_and_write_arrays():
+
+    filename = os.path.join(temp_dir, "file.h5")
+    foo = create_random_array((256, 128), dtype=float)
+    bar = create_random_array((128, 128, 128), dtype=int)
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        dataset.arrays['foo'] = foo
+        dataset.arrays['bar'] = bar
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert numpy.all(foo == dataset.arrays['foo'])
+        assert numpy.all(bar == dataset.arrays['bar'])
+
+
+@nose.tools.raises(KeyError)
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_raises_error_when_array_is_missing():
+
+    filename = os.path.join(temp_dir, "file.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        print(dataset.arrays['foo'])
+
+@nose.tools.raises(KeyError)
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_raises_error_when_array_is_not_array():
+
+    filename = os.path.join(temp_dir, "file.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        nested = dataset['nested']
+        print(dataset.arrays['nested'])

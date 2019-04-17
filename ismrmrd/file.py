@@ -18,11 +18,9 @@ class Container:
             return Container(self.__contents[key])
         return self.__missing__(key)
 
-    def __setitem__(self, key, value):
-        raise NotImplementedError("Setting items is not well defined. Please refrain from doing so.")
-
     def __delitem__(self, key):
-        del self.__contents[key]
+        if key in self.__contents:
+            del self.__contents[key]
 
     def __missing__(self, key):
         return Container(self.__contents.require_group(key))
@@ -31,12 +29,12 @@ class Container:
         return key in self.__contents
 
     def __iter__(self):
-        for key in self.__contents:
-            if isinstance(self.__contents[key], h5py.Group):
+        for key, item in self.__contents.items():
+            if isinstance(item, h5py.Group):
                 yield key
 
     def __str__(self):
-        return str([key for key, item in self.__contents.items()])
+        return str([key for key in self.__contents])
 
     def __get_acquisitions(self):
         data = self.__contents.get('data', [])
@@ -154,6 +152,55 @@ class Container:
 
     images = property(__get_images, __set_images, __del_images)
 
+    class Arrays:
+
+        def __init__(self, contents):
+            self.__contents = contents
+
+        def __getitem__(self, key):
+            item = self.__contents.get(key, None)
+            if not isinstance(item, h5py.Dataset):
+                raise KeyError("Key {} does not map to an array.".format(key))
+            return numpy.array(item, copy=True)
+
+        def __delitem__(self, key):
+            del self.__contents[key]
+
+        def __setitem__(self, key, value):
+            self.__contents[key] = value
+
+        def __iter__(self):
+            for key, item in self.__contents.items():
+                if isinstance(item, h5py.Dataset):
+                    yield key
+
+        def __str__(self):
+            return str([key for key in self])
+
+    def __get_arrays(self):
+        return Container.Arrays(self.__contents)
+
+    arrays = property(__get_arrays)
+
+    def __get_header(self):
+        if 'xml' not in self.__contents:
+            return None
+        return ismrmrd.xsd.CreateFromDocument(self.__contents['xml'][0])
+
+    def __set_header(self, header):
+        self.__del_header()
+        self.__contents.create_dataset('xml', shape=(1, ), dtype=h5py.special_dtype(vlen=str))
+        self.__contents['xml'][0] = header.toxml('utf-8')
+
+    def __del_header(self):
+        if 'xml' in self.__contents:
+            del self.__contents['xml']
+
+    header = property(__get_header, __set_header, __del_header)
+
+    def has_header(self):
+        return 'xml' in self.__contents
+
     def has_images(self):
         return all((key in self.__contents for key in ['data', 'headers', 'attributes']))
 
@@ -165,8 +212,6 @@ class Container:
 
     def has_acquisitions(self):
         return 'data' in self.__contents and not self.has_images()
-
-    arrays = property()
 
     def __visit(self, callback, path):
 
