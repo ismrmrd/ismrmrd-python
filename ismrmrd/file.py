@@ -202,7 +202,7 @@ class Container:
         return 'xml' in self.__contents
 
     def has_images(self):
-        return all((key in self.__contents for key in ['data', 'headers', 'attributes']))
+        return all((key in self.__contents for key in ['data', 'header', 'attributes']))
 
     def has_data(self):
         return any((self.has_acquisitions(), self.has_waveforms()))
