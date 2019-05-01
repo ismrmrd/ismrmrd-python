@@ -2,7 +2,6 @@
 
 import ismrmrd
 
-
 import nose.tools
 
 import random
@@ -33,6 +32,18 @@ def delete_temp_dir():
 def test_open_fresh_hdf5():
     filename = os.path.join(temp_dir, 'open_fresh.h5')
     ismrmrd.Dataset(filename)
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_hdf5_fileinfo():
+    filename = os.path.join(temp_dir, 'stuff.h5')
+
+    dataset = ismrmrd.Dataset(filename, 'dataset')
+    dataset.append_acquisition(create_random_acquisition())
+
+    other_dataset = ismrmrd.Dataset(filename, 'other_dataset')
+    other_dataset.append_acquisition(create_random_acquisition())
+
+    assert(ismrmrd.hdf5.fileinfo(filename) == ['dataset', 'other_dataset'])
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)

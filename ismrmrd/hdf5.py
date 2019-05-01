@@ -116,6 +116,7 @@ def get_hdf5type(val):
     else:
         raise TypeError("Unknown data type.")
 
+
 def get_arrayhdf5type(val):
     if val == np.uint16:
         return np.dtype('<u2')
@@ -136,20 +137,19 @@ def get_arrayhdf5type(val):
     else:
         raise TypeError("Unsupported data type.")    
     
+
 def fileinfo(fname):
-    fid = h5py.File(fname,'r')
-    retval = fid.keys()
-    fid.close()
-    return retval
+    with h5py.File(fname, 'r') as f:
+        return list(f.keys())
 
 
 class Dataset(object):
     def __init__(self, filename, dataset_name="dataset", create_if_needed=True):
         # Open the file
         if create_if_needed:
-            self._file = h5py.File(filename,'a')
+            self._file = h5py.File(filename, 'a')
         else:
-            self._file = h5py.File(filename,'r+')
+            self._file = h5py.File(filename, 'r+')
 
         self._dataset_name = dataset_name
 
@@ -169,8 +169,6 @@ class Dataset(object):
         return self._dataset.keys()
     
     def close(self):
-        #TODO do we want to flush the file?
-        #self._file.flush()
         self._file.close()
 
     def read_xml_header(self):
@@ -268,7 +266,7 @@ class Dataset(object):
         # copy the data
         # ismrmrd complex data is stored as pairs named real and imag
         # TODO do we need to store and reset or the config local to the module?
-        cplxcfg = h5py.get_config().complex_names;
+        cplxcfg = h5py.get_config().complex_names
         h5py.get_config().complex_names = ('real','imag')
         im.data[:] = self._dataset[impath]['data'][imnum]
         h5py.get_config().complex_names = cplxcfg
@@ -313,7 +311,7 @@ class Dataset(object):
         
         # ismrmrd complex data is stored as pairs named real and imag
         # TODO do we need to store and reset or the config local to the module?
-        cplxcfg = h5py.get_config().complex_names;
+        cplxcfg = h5py.get_config().complex_names
         h5py.get_config().complex_names = ('real','imag')
         arr = np.copy(self._dataset[arrpath][arrnum])
         h5py.get_config().complex_names = cplxcfg
@@ -352,8 +350,12 @@ class Dataset(object):
 
         # create a Waveform
         # and fill with the header for this waveform
-        #HDF5 does not guarantee data alignment, so we must copy into a numpy array. *sigh*
-        wav = ismrmrd.Waveform(np.array(self._dataset['waveforms'][wavnum]['head'],dtype=waveform_header_dtype))
+        # HDF5 does not guarantee data alignment, so we must copy into a numpy array. *sigh*
+        # We start with an array of zeros to avoid garbage in the padding bytes.
+        header_array = np.zeros((1, ), dtype=waveform_header_dtype)
+        header_array[0] = self._dataset['waveforms'][wavnum]['head']
+
+        wav = ismrmrd.Waveform(header_array)
 
         # copy the data as uint32
         wav.data[:] = self._dataset['waveforms'][wavnum]['data'].view(np.uint32).reshape((wav.channels, wav.number_of_samples))[:]
@@ -366,7 +368,7 @@ class Dataset(object):
 
         if 'waveforms' in self._dataset:
             wavnum = self._dataset['waveforms'].shape[0]
-            self._dataset['waveforms'].resize(wavnum+1,axis=0)
+            self._dataset['waveforms'].resize(wavnum+1, axis=0)
         else:
             self._dataset.create_dataset("waveforms", (1,), maxshape=(None,), dtype=waveform_dtype)
             wavnum = 0
