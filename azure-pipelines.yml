@@ -33,11 +33,11 @@ steps:
     nosetests  --with-xunit --with-coverage --cover-xml
   displayName: 'pytest'
 
-- script: pip install twine
+- script: 'pip install twine'
 - task: TwineAutheticate@0
   inputs:
-    externalFeeds: 'ismrmrd-pypi'
+    externalFeeds: 'test-pypi'
 
 -script: |
   python setup.py bdist_wheel
-- script: 'twine upload -r {ismrmrd-pypi/ismrmrd} --config-file $(PYPIRC_PATH) dist/*'
+- script: 'twine upload -r {test-pypi/ismrmrd} --config-file $(PYPIRC_PATH) dist/*'
