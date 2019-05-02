@@ -35,6 +35,27 @@ def random_images(n):
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_returns_none_when_no_acquisitions_present():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(10))
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert not dataset.has_acquisitions()
+        assert dataset.acquisitions is None
+
+        dataset.acquisitions = acquisitions
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert dataset.has_acquisitions()
+        assert dataset.acquisitions is not None
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_file_can_read_and_write_acquisitions():
 
     filename = os.path.join(temp_dir, "acquisitions.h5")
@@ -47,7 +68,108 @@ def test_file_can_read_and_write_acquisitions():
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         for a, b in zip(acquisitions, dataset.acquisitions):
-            compare_acquisitions(a, b)
+            assert a == b
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_delete_acquisitions():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert dataset.acquisitions is None
+        del dataset.acquisitions
+        assert dataset.acquisitions is None
+
+        dataset.acquisitions = random_acquisitions(10)
+
+        assert dataset.acquisitions is not None
+        del dataset.acquisitions
+        assert dataset.acquisitions is None
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_access_random_acquisition():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(256))
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = acquisitions
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        assert acquisitions[255] == dataset.acquisitions[255]
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_access_random_acquisition_slice():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(256))
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = acquisitions
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        for a, b in zip(acquisitions[250:255], dataset.acquisitions[250:255]):
+            assert a == b
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_write_random_acquisition():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(256))
+    acquisition = create_random_acquisition()
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = acquisitions
+        dataset.acquisitions[200] = acquisition
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        assert acquisition == dataset.acquisitions[200]
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_write_random_acquisition_slice():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(256))
+    slice = list(random_acquisitions(3))
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = acquisitions
+        dataset.acquisitions[150:153] = slice
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        for a, b in zip(slice, dataset.acquisitions[150:153]):
+            assert a == b
+
+
+@nose.tools.raises(TypeError)
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_cannot_write_mismatched_slice():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(256))
+    slice = list(random_acquisitions(3))
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = acquisitions
+        dataset.acquisitions[150:155] = slice
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -63,7 +185,7 @@ def test_file_can_read_and_write_waveforms():
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         for a, b in zip(waveforms, dataset.waveforms):
-            compare_waveforms(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -79,7 +201,74 @@ def test_file_can_read_and_write_images():
     with ismrmrd.File(filename) as file:
         imageset = file['dataset/image_1']
         for a, b in zip(images, imageset.images):
-            compare_images(a, b)
+            assert a == b
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_read_random_image():
+
+    filename = os.path.join(temp_dir, "images.h5")
+    images = list(random_images(10))
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+        imageset.images = images
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+
+        assert images[8] == imageset.images[8]
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_write_random_image():
+
+    filename = os.path.join(temp_dir, "images.h5")
+    image = create_random_image()
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+        imageset.images = random_images(10)
+        imageset.images[6] = image
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+
+        assert image == imageset.images[6]
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_read_image_slice():
+
+    filename = os.path.join(temp_dir, "images.h5")
+    images = list(random_images(10))
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+        imageset.images = images
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+        for a, b in zip(images[5:10], imageset.images[5:10]):
+            assert a == b
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_write_image_slice():
+
+    filename = os.path.join(temp_dir, "images.h5")
+    images = list(random_images(10))
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+        imageset.images = random_images(32)
+        imageset.images[5:15] = images
+
+    with ismrmrd.File(filename) as file:
+        imageset = file['dataset/image_1']
+
+        for a, b in zip(images, imageset.images[5:15]):
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -206,45 +395,3 @@ def test_file_can_read_and_write_headers():
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         assert header.toxml() == dataset.header.toxml()
-
-
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
-def test_file_can_read_and_write_arrays():
-
-    filename = os.path.join(temp_dir, "file.h5")
-    foo = create_random_array((256, 128), dtype=float)
-    bar = create_random_array((128, 128, 128), dtype=int)
-
-    with ismrmrd.File(filename) as file:
-        dataset = file['dataset']
-
-        dataset.arrays['foo'] = foo
-        dataset.arrays['bar'] = bar
-
-    with ismrmrd.File(filename) as file:
-        dataset = file['dataset']
-
-        assert numpy.all(foo == dataset.arrays['foo'])
-        assert numpy.all(bar == dataset.arrays['bar'])
-
-
-@nose.tools.raises(KeyError)
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
-def test_file_raises_error_when_array_is_missing():
-
-    filename = os.path.join(temp_dir, "file.h5")
-
-    with ismrmrd.File(filename) as file:
-        dataset = file['dataset']
-        print(dataset.arrays['foo'])
-
-@nose.tools.raises(KeyError)
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
-def test_file_raises_error_when_array_is_not_array():
-
-    filename = os.path.join(temp_dir, "file.h5")
-
-    with ismrmrd.File(filename) as file:
-        dataset = file['dataset']
-        nested = dataset['nested']
-        print(dataset.arrays['nested'])

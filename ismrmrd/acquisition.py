@@ -5,9 +5,10 @@ import io
 
 from .constants import *
 from .flags import FlagsMixin
+from .equality import EqualityMixin
 
 
-class EncodingCounters(ctypes.Structure):
+class EncodingCounters(EqualityMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),
                 ("kspace_encode_step_2", ctypes.c_uint16),
@@ -18,7 +19,7 @@ class EncodingCounters(ctypes.Structure):
                 ("repetition", ctypes.c_uint16),
                 ("set", ctypes.c_uint16),
                 ("segment", ctypes.c_uint16),
-                ("user", ctypes.c_uint16*USER_INTS),]
+                ("user", ctypes.c_uint16*USER_INTS)]
 
     def __str__(self):
         retstr = ''
@@ -31,7 +32,7 @@ class EncodingCounters(ctypes.Structure):
         return retstr
 
 
-class AcquisitionHeader(FlagsMixin, ctypes.Structure):
+class AcquisitionHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
@@ -210,4 +211,14 @@ class Acquisition(FlagsMixin):
         retstr += 'Trajectory:\n %s\n' % (self.traj)
         retstr += 'Data:\n %s\n' % (self.data)
         return retstr
- 
+
+    def __eq__(self, other):
+        if not isinstance(other, Acquisition):
+            return False
+
+        return all([
+            self.__head == other.__head,
+            np.array_equal(self.__data, other.__data),
+            np.array_equal(self.__traj, other.__traj)
+        ])
+

@@ -68,7 +68,7 @@ def test_serialize_and_deserialize():
 
         deserialized_waveform = ismrmrd.Waveform.deserialize_from(stream.read)
 
-        common.compare_waveforms(waveform, deserialized_waveform)
+        assert waveform == deserialized_waveform
 
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
@@ -78,7 +78,7 @@ def test_to_and_from_bytes():
 
     deserialized_waveform = ismrmrd.Waveform.from_bytes(waveform.to_bytes())
 
-    common.compare_waveforms(waveform, deserialized_waveform)
+    assert waveform == deserialized_waveform
 
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
@@ -90,7 +90,7 @@ def test_serialization_with_header_fields():
     waveform = ismrmrd.Waveform.from_array(data, **properties)
     deserialized_waveform = ismrmrd.Waveform.from_bytes(waveform.to_bytes())
 
-    common.compare_waveforms(waveform, deserialized_waveform)
+    assert waveform == deserialized_waveform
 
 
 @nose.tools.raises(ValueError)
