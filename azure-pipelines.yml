@@ -34,7 +34,8 @@ steps:
   displayName: 'pytest'
 
 - script: 'pip install twine'
-- task: TwineAutheticate@0
+
+- task: TwineAuthenticate@0
   inputs:
     externalFeeds: 'test-pypi'
 
