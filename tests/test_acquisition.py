@@ -108,6 +108,30 @@ def test_clearing_unset_flag_does_not_set_other_flags():
         "Clearing an unset flag sets other flags."
 
 
+@nose.tools.with_setup()
+def test_acquisition_equality_test_header_field():
+    a = common.create_random_acquisition(42)
+    b = common.create_random_acquisition(42)
+
+    assert a == b
+
+    a.flags -= 1
+
+    assert a != b
+
+
+@nose.tools.with_setup()
+def test_acquisition_equality_test_header_array():
+    a = common.create_random_acquisition(42)
+    b = common.create_random_acquisition(42)
+
+    assert a == b
+
+    a.position[1] += a.position[1] * 0.5
+
+    assert a != b
+
+
 @nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_from_array():
 
@@ -186,7 +210,7 @@ def test_serialize_and_deserialize():
 
         deserialized_acquisition = ismrmrd.Acquisition.deserialize_from(stream.read)
 
-        common.compare_acquisitions(acquisition, deserialized_acquisition)
+        assert acquisition == deserialized_acquisition
 
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
@@ -196,7 +220,7 @@ def test_to_and_from_bytes():
 
     deserialized_acquisition = ismrmrd.Acquisition.from_bytes(acquisition.to_bytes())
 
-    common.compare_acquisitions(acquisition, deserialized_acquisition)
+    assert acquisition == deserialized_acquisition
 
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
@@ -209,7 +233,7 @@ def test_serialization_with_header_fields():
     acquisition = ismrmrd.Acquisition.from_array(data, trajectory, **properties)
     deserialized_acquisition = ismrmrd.Acquisition.from_bytes(acquisition.to_bytes())
 
-    common.compare_acquisitions(acquisition, deserialized_acquisition)
+    assert acquisition == deserialized_acquisition
 
 
 @nose.tools.raises(ValueError)
