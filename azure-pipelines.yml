@@ -30,17 +30,17 @@ steps:
 
 - script: |
     python setup.py build
-    nosetests  --with-xunit --with-coverage --cover-xml
-  displayName: 'pytest'
+    nosetests  --with-xunit --with-coverage --cover-xml --cover-html
+  displayName: 'nosetests'
 
-- script: 'pip install twine'
-
-- task: TwineAuthenticate@0
+- task: PublishTestResults@2
+  condition: succeededOrFailed()
   inputs:
-    externalFeeds: 'test-pypi'
-
-- script: |
-    pip install wheel
-    python setup.py bdist_wheel
-
-- script: 'twine upload --repository-url https://test.pypi.org/legacy/ --config-file $(PYPIRC_PATH) dist/*'
+    testResultsFiles:  'nosetests.xml'
+    testRunTitle: 'Publish test results for Python $(python.version)'
+    
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
