@@ -232,6 +232,24 @@ class Dataset(object):
         # put it into the hdf5 file
         self._dataset['data'][acqnum] = h5acq[0]
 
+    def write_acquisition(self,acq,acqnum):
+
+        # create an empty hdf5 acquisition and fill it
+        h5acq = np.empty((1,), dtype=acquisition_dtype)
+        # copy the header
+
+        h5acq[0]['head'] = np.frombuffer(acq.getHead(), dtype=acquisition_header_dtype)
+
+        # copy the data as float
+        h5acq[0]['data'] = acq.data.view(np.float32).reshape((2*acq.active_channels*acq.number_of_samples,))
+
+        # copy the trajectory as float
+        h5acq[0]['traj'] = acq.traj.view(np.float32).reshape((acq.number_of_samples*acq.trajectory_dimensions,))
+
+        # put it into the hdf5 file
+        self._dataset['data'][acqnum] = h5acq[0]
+
+
     def number_of_images(self, impath):
         if impath not in self._dataset:
             raise LookupError("Image data not found in the dataset.")
