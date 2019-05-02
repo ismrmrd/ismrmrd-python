@@ -35,6 +35,27 @@ def random_images(n):
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_returns_none_when_no_acquisitions_present():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(10))
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert not dataset.has_acquisitions()
+        assert dataset.acquisitions is None
+
+        dataset.acquisitions = acquisitions
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert dataset.has_acquisitions()
+        assert dataset.acquisitions is not None
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_file_can_read_and_write_acquisitions():
 
     filename = os.path.join(temp_dir, "acquisitions.h5")
@@ -48,6 +69,25 @@ def test_file_can_read_and_write_acquisitions():
         dataset = file['dataset']
         for a, b in zip(acquisitions, dataset.acquisitions):
             compare_acquisitions(a, b)
+
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_delete_acquisitions():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+
+        assert dataset.acquisitions is None
+        del dataset.acquisitions
+        assert dataset.acquisitions is None
+
+        dataset.acquisitions = random_acquisitions(10)
+
+        assert dataset.acquisitions is not None
+        del dataset.acquisitions
+        assert dataset.acquisitions is None
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
