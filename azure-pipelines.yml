@@ -40,7 +40,7 @@ steps:
     externalFeeds: 'test-pypi'
 
 - script: |
-  pip install wheel
-  python setup.py bdist_wheel
+    pip install wheel
+    python setup.py bdist_wheel
 
 - script: 'twine upload -r test-pypi/ismrmrd --config-file $(PYPIRC_PATH) dist/*'
