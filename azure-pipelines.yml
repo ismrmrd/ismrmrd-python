@@ -29,5 +29,5 @@ steps:
   displayName: 'Install dependencies'
 
 - script: |
-    nosetests  --with-xunit --coverage --cover-xml
+    nosetests  --with-xunit --with-coverage --cover-xml
   displayName: 'pytest'
