@@ -29,7 +29,5 @@ steps:
   displayName: 'Install dependencies'
 
 - script: |
-    pip install pytest pytest-azurepipelines
-    pip install pytest-cov
-    pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+    nosetsts  --with-xunit --coverage --cover-xml
   displayName: 'pytest'
