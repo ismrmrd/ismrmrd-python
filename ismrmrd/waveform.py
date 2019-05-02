@@ -4,9 +4,10 @@ import copy
 import io
 
 from .flags import FlagsMixin
+from .equality import EqualityMixin
 
 
-class WaveformHeader(FlagsMixin, ctypes.Structure):
+class WaveformHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 8
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
@@ -16,8 +17,7 @@ class WaveformHeader(FlagsMixin, ctypes.Structure):
                 ("number_of_samples", ctypes.c_uint16),
                 ("channels", ctypes.c_uint16),
                 ("sample_time_us", ctypes.c_float),
-                ("waveform_id", ctypes.c_uint16),
-                ]
+                ("waveform_id", ctypes.c_uint16)]
 
     def __str__(self):
         retstr = ''
@@ -34,7 +34,6 @@ class WaveformHeader(FlagsMixin, ctypes.Structure):
 
 class Waveform(FlagsMixin):
     __readonly = ('number_of_samples', 'channels')
-
 
     @staticmethod
     def deserialize_from(read_exactly):
@@ -88,7 +87,7 @@ class Waveform(FlagsMixin):
 
         return waveform
 
-    def __init__(self, head = None,data = None):
+    def __init__(self, head=None, data=None):
         if head is None:
             self.__head = WaveformHeader()
             self.__data = np.empty(shape=(1, 0), dtype=np.uint32)
@@ -97,8 +96,7 @@ class Waveform(FlagsMixin):
             self.__data = np.empty(shape=(self.__head.channels, self.__head.number_of_samples), dtype=np.uint32)
 
             if data is not None:
-                self.data[:] = data.reshape((self.__head.channels,self.__head.number_of_samples),order="C")
-
+                self.data[:] = data.reshape((self.__head.channels,self.__head.number_of_samples), order="C")
 
         for (field, type) in self.__head._fields_:
             try:
@@ -123,7 +121,7 @@ class Waveform(FlagsMixin):
 
     def __setter(self, name):
         if name in self.__readonly:
-            def fn(self,val):
+            def fn(self, val):
                 raise AttributeError(name+" is read-only. Use resize instead.")
         else:
             def fn(self, val):
@@ -131,25 +129,30 @@ class Waveform(FlagsMixin):
 
         return fn
 
-    def resize(self, number_of_samples = 0, channels= 1):
+    def resize(self, number_of_samples=0, channels=1):
         self.__data = np.resize(self.__data, (channels, number_of_samples))
         self.__head.number_of_samples = number_of_samples
-        self.__head.channels  = channels
+        self.__head.channels = channels
 
     def getHead(self):
         return copy.deepcopy(self.__head)
 
     def setHead(self, hdr):
         self.__head = self.__head.__class__.from_buffer_copy(hdr)
-        self.resize(self.__head.number_of_samples, self.__head.active_channels )
+        self.resize(self.__head.number_of_samples, self.__head.active_channels)
 
     @property
     def data(self):
         return self.__data.view()
 
     def __str__(self):
-        retstr = ''
-        retstr += 'Header:\n %s\n' % (self.__head)
-        retstr += 'Data:\n %s\n' % (self.data)
-        return retstr
+        return "Header:\n {}\nData:\n {}\n".format(self.__head, self.__data)
 
+    def __eq__(self, other):
+        if not isinstance(other, Waveform):
+            return False
+
+        return all([
+            self.__head == other.__head,
+            np.array_equal(self.__data, other.__data)
+        ])

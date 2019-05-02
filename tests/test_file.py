@@ -68,7 +68,7 @@ def test_file_can_read_and_write_acquisitions():
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         for a, b in zip(acquisitions, dataset.acquisitions):
-            compare_acquisitions(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -102,7 +102,7 @@ def test_file_can_access_random_acquisition():
 
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
-        compare_acquisitions(acquisitions[255], dataset.acquisitions[255])
+        assert acquisitions[255] == dataset.acquisitions[255]
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -119,7 +119,7 @@ def test_file_can_access_random_acquisition_slice():
         dataset = file['dataset']
 
         for a, b in zip(acquisitions[250:255], dataset.acquisitions[250:255]):
-            compare_acquisitions(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -136,7 +136,7 @@ def test_file_can_write_random_acquisition():
 
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
-        compare_acquisitions(acquisition, dataset.acquisitions[200])
+        assert acquisition == dataset.acquisitions[200]
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -155,7 +155,7 @@ def test_file_can_write_random_acquisition_slice():
         dataset = file['dataset']
 
         for a, b in zip(slice, dataset.acquisitions[150:153]):
-            compare_acquisitions(a, b)
+            assert a == b
 
 
 @nose.tools.raises(TypeError)
@@ -185,7 +185,7 @@ def test_file_can_read_and_write_waveforms():
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         for a, b in zip(waveforms, dataset.waveforms):
-            compare_waveforms(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -201,7 +201,7 @@ def test_file_can_read_and_write_images():
     with ismrmrd.File(filename) as file:
         imageset = file['dataset/image_1']
         for a, b in zip(images, imageset.images):
-            compare_images(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -216,7 +216,8 @@ def test_file_can_read_random_image():
 
     with ismrmrd.File(filename) as file:
         imageset = file['dataset/image_1']
-        compare_images(images[8], imageset.images[8])
+
+        assert images[8] == imageset.images[8]
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -232,7 +233,8 @@ def test_file_can_write_random_image():
 
     with ismrmrd.File(filename) as file:
         imageset = file['dataset/image_1']
-        compare_images(image, imageset.images[6])
+
+        assert image == imageset.images[6]
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -248,7 +250,7 @@ def test_file_can_read_image_slice():
     with ismrmrd.File(filename) as file:
         imageset = file['dataset/image_1']
         for a, b in zip(images[5:10], imageset.images[5:10]):
-            compare_images(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -266,7 +268,7 @@ def test_file_can_write_image_slice():
         imageset = file['dataset/image_1']
 
         for a, b in zip(images, imageset.images[5:15]):
-            compare_images(a, b)
+            assert a == b
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)

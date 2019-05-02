@@ -185,7 +185,7 @@ def test_serialize_and_deserialize():
 
         read_image = ismrmrd.Image.deserialize_from(stream.read)
 
-        common.compare_images(image, read_image)
+        assert image == read_image
 
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
@@ -196,7 +196,7 @@ def test_to_and_from_bytes():
 
     read_image = ismrmrd.Image.from_bytes(image.to_bytes())
 
-    common.compare_images(image, read_image)
+    assert image == read_image
 
 
 @nose.tools.with_setup(setup=common.seed_random_generators)
@@ -207,7 +207,7 @@ def test_serialization_with_header_fields():
 
     read_image = ismrmrd.Image.from_bytes(image.to_bytes())
 
-    common.compare_images(image, read_image)
+    assert image == read_image
 
 
 @nose.tools.raises(ValueError)
@@ -226,4 +226,4 @@ def test_serialization_of_unicode_attribute_string():
 
     read_image = ismrmrd.Image.from_bytes(image.to_bytes())
 
-    common.compare_images(image, read_image)
+    assert image == read_image
