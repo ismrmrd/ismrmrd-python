@@ -30,6 +30,7 @@ steps:
 
 - script: |
     python setup.py build
+    pip install coverage
     nosetests  --with-xunit --with-coverage --cover-xml --cover-html
   displayName: 'nosetests'
 
@@ -38,7 +39,7 @@ steps:
   inputs:
     testResultsFiles:  'nosetests.xml'
     testRunTitle: 'Publish test results for Python $(python.version)'
-    
+
 - task: PublishCodeCoverageResults@1
   inputs:
     codeCoverageTool: Cobertura
