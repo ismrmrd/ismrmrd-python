@@ -38,6 +38,6 @@ steps:
   inputs:
     externalFeeds: 'test-pypi'
 
--script: |
+- script: |
   python setup.py bdist_wheel
 - script: 'twine upload -r {test-pypi/ismrmrd} --config-file $(PYPIRC_PATH) dist/*'
