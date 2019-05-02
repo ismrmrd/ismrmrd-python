@@ -29,6 +29,6 @@ steps:
   displayName: 'Install dependencies'
 
 - script: |
-    python setup.py develop
+    python setup.py build
     nosetests  --with-xunit --with-coverage --cover-xml
   displayName: 'pytest'
