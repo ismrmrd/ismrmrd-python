@@ -6,6 +6,7 @@ import io
 
 from .acquisition import Acquisition
 from .flags import FlagsMixin
+from .equality import EqualityMixin
 from .constants import *
 
 dtype_mapping = {
@@ -36,7 +37,7 @@ def get_data_type_from_dtype(dtype):
 
 
 # Image Header
-class ImageHeader(FlagsMixin, ctypes.Structure):
+class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("data_type", ctypes.c_uint16),
@@ -263,9 +264,14 @@ class Image(FlagsMixin):
         return self.__data.shape[1:4]
 
     def __str__(self):
-        retstr = ''
-        retstr += 'Header:\n %s\n' % (self.__head)
-        retstr += 'Attribute string:\n %s\n' % (self.attribute_string)
-        retstr += 'Data:\n %s\n' % (self.data)
-        return retstr
-        
+        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.__attribute_string, self.__data)
+
+    def __eq__(self, other):
+        if not isinstance(other, Image):
+            return False
+
+        return all([
+            self.__head == other.__head,
+            np.array_equal(self.__data, other.__data),
+            np.array_equal(self.__attribute_string, other.__attribute_string)
+        ])
