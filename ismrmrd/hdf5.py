@@ -180,7 +180,7 @@ class Dataset(object):
         # create the dataset if needed
         self._file.require_group(self._dataset_name)
 
-        dset = self._dataset.require_dataset('xml',shape=(1,), dtype=h5py.special_dtype(vlen=str))
+        dset = self._dataset.require_dataset('xml',shape=(1,), dtype=h5py.special_dtype(vlen=bytes))
         dset[0] = xmlstring
 
     def number_of_acquisitions(self):
