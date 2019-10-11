@@ -19,12 +19,12 @@ class EncodingCounters(EqualityMixin, ctypes.Structure):
                 ("repetition", ctypes.c_uint16),
                 ("set", ctypes.c_uint16),
                 ("segment", ctypes.c_uint16),
-                ("user", ctypes.c_uint16*USER_INTS)]
+                ("user", ctypes.c_uint16 * USER_INTS)]
 
     def __str__(self):
         retstr = ''
         for field_name, field_type in self._fields_:
-            var = getattr(self,field_name)
+            var = getattr(self, field_name)
             if hasattr(var, '_length_'):
                 retstr += '%s: %s\n' % (field_name, ', '.join((str(v) for v in var)))
             else:
@@ -62,7 +62,7 @@ class AcquisitionHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     def __str__(self):
         retstr = ''
         for field_name, field_type in self._fields_:
-            var = getattr(self,field_name)
+            var = getattr(self, field_name)
             if hasattr(var, '_length_'):
                 retstr += '%s: %s\n' % (field_name, ', '.join((str(v) for v in var)))
             else:
@@ -142,17 +142,40 @@ class Acquisition(FlagsMixin):
 
         return acquisition
 
-    def __init__(self, head = None):
-        if head is None:
-            self.__head = AcquisitionHeader()
-            self.__data = np.empty(shape=(1, 0), dtype=np.complex64)
-            self.__traj = np.empty(shape=(0, 1), dtype=np.float32)
-        else:
-            self.__head = AcquisitionHeader.from_buffer_copy(head)
-            self.__data = np.empty(shape=(self.__head.active_channels, self.__head.number_of_samples), dtype=np.complex64)
-            self.__traj = np.empty(shape=(self.__head.number_of_samples, self.__head.trajectory_dimensions), dtype=np.float32)
+    def __init__(self, head=None, data=None, trajectory=None):
+        def generate_header():
+            if head is None:
+                if data is None:
+                    return AcquisitionHeader()
+                else:
+                    nchannels, nsamples = data.shape
+                    trajectory_dimensions = trajectory.shape[1] if trajectory is not None else 0
+                    header = AcquisitionHeader()
+                    header.number_of_samples = nsamples
+                    header.active_channels = nchannels
+                    header.available_channels = nchannels
+                    header.trajectory_dimensions = trajectory_dimensions
+                    return header
+            else:
+                if type(head) == AcquisitionHeader:
+                    return head
+                else:
+                    return AcquisitionHeader.from_buffer_copy(head)
 
-        for (field, type) in self.__head._fields_:
+        def generate_data_array(header):
+            return data if data is not None else np.zeros(shape=(header.active_channels, header.number_of_samples),
+                                                          dtype=np.complex64)
+
+        def generate_trajectory_array(header):
+            return trajectory if trajectory is not None else np.zeros(
+                shape=(header.number_of_samples, header.trajectory_dimensions), dtype=np.float32)
+
+        self.__head = generate_header()
+
+        self.__data = generate_data_array(self.__head)
+        self.__traj = generate_trajectory_array(self.__head)
+
+        for (field, _) in self.__head._fields_:
             try:
                 g = '__get_' + field
                 s = '__set_' + field
@@ -175,28 +198,28 @@ class Acquisition(FlagsMixin):
 
     def __setter(self, name):
         if name in self.__readonly:
-            def fn(self,val):
-                raise AttributeError(name+" is read-only. Use resize instead.")
+            def fn(self, val):
+                raise AttributeError(name + " is read-only. Use resize instead.")
         else:
             def fn(self, val):
                 self.__head.__setattr__(name, val)
 
         return fn
 
-    def resize(self, number_of_samples = 0, active_channels = 1, trajectory_dimensions = 0):
+    def resize(self, number_of_samples=0, active_channels=1, trajectory_dimensions=0):
         self.__data = np.resize(self.__data, (active_channels, number_of_samples))
         self.__traj = np.resize(self.__traj, (number_of_samples, trajectory_dimensions))
         self.__head.number_of_samples = number_of_samples
-        self.__head.active_channels  = active_channels 
+        self.__head.active_channels = active_channels
         self.__head.trajectory_dimensions = trajectory_dimensions
-               
+
     def getHead(self):
         return copy.deepcopy(self.__head)
 
     def setHead(self, hdr):
         self.__head = self.__head.__class__.from_buffer_copy(hdr)
         self.resize(self.__head.number_of_samples, self.__head.active_channels, self.__head.trajectory_dimensions)
-    
+
     @property
     def data(self):
         return self.__data.view()
@@ -221,4 +244,3 @@ class Acquisition(FlagsMixin):
             np.array_equal(self.__data, other.__data),
             np.array_equal(self.__traj, other.__traj)
         ])
-
