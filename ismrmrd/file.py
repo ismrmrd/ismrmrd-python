@@ -1,4 +1,3 @@
-
 import h5py
 import numpy
 
@@ -152,164 +151,32 @@ class Images:
     datatype = None
 
 
-class Container:
-
+class Folder:
     def __init__(self, contents):
-        self.__contents = contents
+        self._contents = contents
 
     def __getitem__(self, key):
-        if key in self.__contents:
-            return Container(self.__contents[key])
+        if key in self._contents:
+            return Container(self._contents[key])
         return self.__missing__(key)
 
     def __delitem__(self, key):
-        if key in self.__contents:
-            del self.__contents[key]
+        if key in self._contents:
+            del self._contents[key]
 
     def __missing__(self, key):
-        return Container(self.__contents.require_group(key))
+        return Container(self._contents.require_group(key))
 
     def __contains__(self, key):
-        return key in self.__contents
+        return key in self._contents
 
     def __iter__(self):
-        for key, item in self.__contents.items():
+        for key, item in self._contents.items():
             if isinstance(item, h5py.Group):
                 yield key
 
     def __str__(self):
-        return str([key for key in self.__contents])
-
-    def __get_acquisitions(self):
-        if not self.has_acquisitions():
-            return None
-        data = self.__contents.get('data')
-        return Acquisitions(data)
-
-    def __set_acquisitions(self, acquisitions):
-
-        if self.has_images():
-            raise TypeError("Cannot add acquisitions when images are present.")
-
-        converter = Acquisitions(None)
-        buffer = numpy.array([converter.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
-
-        self.__del_acquisitions()
-        self.__contents['data'] = buffer
-
-    def __del_acquisitions(self):
-        if 'data' in self.__contents:
-            del self.__contents['data']
-
-    acquisitions = property(__get_acquisitions, __set_acquisitions, __del_acquisitions)
-
-    def __get_waveforms(self):
-        if not self.has_waveforms():
-            return None
-        data = self.__contents.get('waveforms')
-        return Waveforms(data)
-
-    def __set_waveforms(self, waveforms):
-
-        if self.has_images():
-            raise TypeError("Cannot add waveforms when images are present.")
-
-        converter = Waveforms(None)
-        buffer = numpy.array([converter.to_numpy(w) for w in waveforms], dtype=waveform_dtype)
-
-        self.__del_waveforms()
-        self.__contents['waveforms'] = buffer
-
-    def __del_waveforms(self):
-        if 'waveforms' in self.__contents:
-            del self.__contents['waveforms']
-
-    waveforms = property(__get_waveforms, __set_waveforms, __del_waveforms)
-
-    def __get_images(self):
-        if not self.has_images():
-            return None
-
-        return Images(
-            self.__contents.get('data'),
-            self.__contents.get('header'),
-            self.__contents.get('attributes')
-        )
-
-    def __set_images(self, images):
-
-        if self.has_data():
-            raise TypeError("Cannot add images when data is present.")
-
-        images = list(images)
-
-        data = numpy.stack([image.data for image in images])
-        headers = numpy.stack([np.frombuffer(image.getHead(), dtype=image_header_dtype) for image in images])
-        attributes = numpy.stack([image.attribute_string for image in images])
-
-        self.__del_images()
-        self.__contents.create_dataset('data', data=data)
-        self.__contents.create_dataset('header', data=headers)
-        self.__contents.create_dataset('attributes', shape=attributes.shape, dtype=h5py.special_dtype(vlen=str))
-        self.__contents['attributes'][:] = attributes
-
-    def __del_images(self):
-        for key in ['header', 'data', 'attributes']:
-            if key in self.__contents:
-                del self.__contents[key]
-
-    images = property(__get_images, __set_images, __del_images)
-
-    def __get_header(self):
-        if not self.has_header():
-            return None
-        return ismrmrd.xsd.CreateFromDocument(self.__contents['xml'][0])
-
-    def __set_header(self, header):
-        self.__del_header()
-        self.__contents.create_dataset('xml', shape=(1, ), dtype=h5py.special_dtype(vlen=str))
-        self.__contents['xml'][0] = header.toxml('utf-8')
-
-    def __del_header(self):
-        if 'xml' in self.__contents:
-            del self.__contents['xml']
-
-    header = property(__get_header, __set_header, __del_header)
-
-    def available(self):
-
-        def header():
-            if self.has_header():
-                return 'header'
-
-        def acquisitions():
-            if self.has_acquisitions():
-                return 'acquisitions'
-
-        def waveforms():
-            if self.has_waveforms():
-                return 'waveforms'
-
-        def images():
-            if self.has_images():
-                return 'images'
-
-        return list(filter(bool, [header(), acquisitions(), waveforms(), images()]))
-
-    def has_header(self):
-        return 'xml' in self.__contents
-
-    def has_images(self):
-        return all((key in self.__contents for key in ['data', 'header', 'attributes']))
-
-    def has_data(self):
-        return any((self.has_acquisitions(), self.has_waveforms()))
-
-    def has_waveforms(self):
-        return 'waveforms' in self.__contents
-
-    def has_acquisitions(self):
-        return 'data' in self.__contents and not self.has_images()
+        return str([key for key in self._contents])
 
     def __visit(self, callback, path):
 
@@ -346,8 +213,148 @@ class Container:
         self.visit(find_data)
         return data
 
+    def keys(self):
+        return self._contents.keys()
 
-class File(Container):
+
+class Container(Folder):
+
+    def __init__(self, contents):
+        super(Container, self).__init__(contents)
+
+    def __get_acquisitions(self):
+        if not self.has_acquisitions():
+            return None
+        data = self._contents.get('data')
+        return Acquisitions(data)
+
+    def __set_acquisitions(self, acquisitions):
+
+        if self.has_images():
+            raise TypeError("Cannot add acquisitions when images are present.")
+
+        converter = Acquisitions(None)
+        buffer = numpy.array([converter.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
+
+        self.__del_acquisitions()
+        self._contents['data'] = buffer
+
+    def __del_acquisitions(self):
+        if 'data' in self._contents:
+            del self._contents['data']
+
+    acquisitions = property(__get_acquisitions, __set_acquisitions, __del_acquisitions)
+
+    def __get_waveforms(self):
+        if not self.has_waveforms():
+            return None
+        data = self._contents.get('waveforms')
+        return Waveforms(data)
+
+    def __set_waveforms(self, waveforms):
+
+        if self.has_images():
+            raise TypeError("Cannot add waveforms when images are present.")
+
+        converter = Waveforms(None)
+        buffer = numpy.array([converter.to_numpy(w) for w in waveforms], dtype=waveform_dtype)
+
+        self.__del_waveforms()
+        self._contents['waveforms'] = buffer
+
+    def __del_waveforms(self):
+        if 'waveforms' in self._contents:
+            del self._contents['waveforms']
+
+    waveforms = property(__get_waveforms, __set_waveforms, __del_waveforms)
+
+    def __get_images(self):
+        if not self.has_images():
+            return None
+
+        return Images(
+            self._contents.get('data'),
+            self._contents.get('header'),
+            self._contents.get('attributes')
+        )
+
+    def __set_images(self, images):
+
+        if self.has_data():
+            raise TypeError("Cannot add images when data is present.")
+
+        images = list(images)
+
+        data = numpy.stack([image.data for image in images])
+        headers = numpy.stack([np.frombuffer(image.getHead(), dtype=image_header_dtype) for image in images])
+        attributes = numpy.stack([image.attribute_string for image in images])
+
+        self.__del_images()
+        self._contents.create_dataset('data', data=data)
+        self._contents.create_dataset('header', data=headers)
+        self._contents.create_dataset('attributes', shape=attributes.shape, dtype=h5py.special_dtype(vlen=str))
+        self._contents['attributes'][:] = attributes
+
+    def __del_images(self):
+        for key in ['header', 'data', 'attributes']:
+            if key in self._contents:
+                del self._contents[key]
+
+    images = property(__get_images, __set_images, __del_images)
+
+    def __get_header(self):
+        if not self.has_header():
+            return None
+        return ismrmrd.xsd.CreateFromDocument(self._contents['xml'][0])
+
+    def __set_header(self, header):
+        self.__del_header()
+        self._contents.create_dataset('xml', shape=(1,), dtype=h5py.special_dtype(vlen=str))
+        self._contents['xml'][0] = header.toxml('utf-8')
+
+    def __del_header(self):
+        if 'xml' in self._contents:
+            del self._contents['xml']
+
+    header = property(__get_header, __set_header, __del_header)
+
+    def available(self):
+
+        def header():
+            if self.has_header():
+                return 'header'
+
+        def acquisitions():
+            if self.has_acquisitions():
+                return 'acquisitions'
+
+        def waveforms():
+            if self.has_waveforms():
+                return 'waveforms'
+
+        def images():
+            if self.has_images():
+                return 'images'
+
+        return list(filter(bool, [header(), acquisitions(), waveforms(), images()]))
+
+    def has_header(self):
+        return 'xml' in self._contents
+
+    def has_images(self):
+        return all((key in self._contents for key in ['data', 'header', 'attributes']))
+
+    def has_data(self):
+        return any((self.has_acquisitions(), self.has_waveforms()))
+
+    def has_waveforms(self):
+        return 'waveforms' in self._contents
+
+    def has_acquisitions(self):
+        return 'data' in self._contents and not self.has_images()
+
+
+class File(Folder):
 
     def __init__(self, filename, mode='a'):
         self.__file = h5py.File(filename, mode)

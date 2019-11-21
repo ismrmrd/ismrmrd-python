@@ -58,13 +58,13 @@ class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
                 ("repetition", ctypes.c_uint16),
                 ("set", ctypes.c_uint16),
                 ("acquisition_time_stamp", ctypes.c_uint32),
-                ("physiology_time_stamp", ctypes.c_uint32 * PHYS_STAMPS),                
+                ("physiology_time_stamp", ctypes.c_uint32 * PHYS_STAMPS),
                 ("image_type", ctypes.c_uint16),
                 ("image_index", ctypes.c_uint16),
                 ("image_series_index", ctypes.c_uint16),
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS),
-                ("attribute_string_len", ctypes.c_uint32),]
+                ("attribute_string_len", ctypes.c_uint32), ]
 
     @staticmethod
     def from_acquisition(acquisition, **kwargs):
@@ -89,6 +89,10 @@ class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
         for field in acquisition_fields:
             setattr(header, field, getattr(acquisition, field))
 
+        idx_fields = ['average', 'slice', 'contrast', 'phase', 'repetition', 'set']
+        for field in idx_fields:
+            setattr(header, field, getattr(acquisition.idx, field))
+
         for field in kwargs:
             setattr(header, field, kwargs.get(field))
 
@@ -97,7 +101,7 @@ class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     def __str__(self):
         retstr = ''
         for field_name, field_type in self._fields_:
-            var = getattr(self,field_name)
+            var = getattr(self, field_name)
             if hasattr(var, '_length_'):
                 retstr += '%s: %s\n' % (field_name, ', '.join((str(v) for v in var)))
             else:
@@ -157,14 +161,13 @@ class Image(FlagsMixin):
     def from_array(array, acquisition=Acquisition(), **kwargs):
 
         def input_shape_to_header_format(array):
-
             def with_defaults(first=1, second=1, third=1, nchannels=1):
                 return nchannels, (first, second, third)
 
             return with_defaults(*array.shape)
 
         def header_format_to_resize_shape(nchannels, first, second, third):
-                return nchannels, third, second, first
+            return nchannels, third, second, first
 
         nchannels, matrix_size = input_shape_to_header_format(array)
 
@@ -182,7 +185,7 @@ class Image(FlagsMixin):
 
         return image
 
-    def __init__(self, head = None, attribute_string = ""):
+    def __init__(self, head=None, attribute_string=""):
         if head is None:
             self.__head = ImageHeader()
             self.__head.data_type = DATATYPE_CXFLOAT
@@ -193,7 +196,7 @@ class Image(FlagsMixin):
                                           self.__head.matrix_size[1], self.__head.matrix_size[0]),
                                    dtype=get_dtype_from_data_type(self.__head.data_type))
 
-        #TODO do we need to check if attribute_string is really a string?
+        # TODO do we need to check if attribute_string is really a string?
         self.__attribute_string = attribute_string
         if (len(self.__attribute_string) != self.__head.attribute_string_len):
             raise ValueError("attribute_string and head.attribute_string_len are inconsistent.")
@@ -212,7 +215,7 @@ class Image(FlagsMixin):
                 except TypeError:
                     # e.g. if key is an `int`, skip it
                     pass
-                
+
     def __getter(self, name):
         if name in self.__readonly:
             def fn(self):
@@ -224,8 +227,8 @@ class Image(FlagsMixin):
 
     def __setter(self, name):
         if name in self.__readonly:
-            def fn(self,val):
-                raise AttributeError(name+" is read-only.")
+            def fn(self, val):
+                raise AttributeError(name + " is read-only.")
         else:
             def fn(self, val):
                 self.__head.__setattr__(name, val)
@@ -238,11 +241,12 @@ class Image(FlagsMixin):
     def setHead(self, hdr):
         self.__head = self.__head.__class__.from_buffer_copy(hdr)
         self.setDataType(self.__head.data_type)
-        self.resize(self.__head.channels, self.__head.matrix_size[2], self.__head.matrix_size[1], self.__head.matrix_size[0])
+        self.resize(self.__head.channels, self.__head.matrix_size[2], self.__head.matrix_size[1],
+                    self.__head.matrix_size[0])
 
     def setDataType(self, val):
         self.__data = self.__data.astype(get_dtype_from_data_type(val))
-        
+
     def resize(self, nc, nz, ny, nx):
         self.__data = np.resize(self.__data, (nc, nz, ny, nx))
 
@@ -253,18 +257,19 @@ class Image(FlagsMixin):
     @property
     def attribute_string(self):
         return self.__attribute_string
-    
+
     @attribute_string.setter
     def attribute_string(self, val):
         self.__attribute_string = val
         self.__head.attribute_string_len = len(self.__attribute_string)
-        
+
     @property
     def matrix_size(self):
         return self.__data.shape[1:4]
 
     def __str__(self):
-        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.__attribute_string, self.__data)
+        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.__attribute_string,
+                                                                           self.__data)
 
     def __eq__(self, other):
         if not isinstance(other, Image):

@@ -294,6 +294,23 @@ def test_file_can_list_contained_images():
         assert(file.find_data() == {'dataset'})
 
 
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_list_keys():
+
+    filename = os.path.join(temp_dir, "keys.h5")
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = random_acquisitions(10)
+
+
+        dataset2 = file['dataset2']
+        dataset2.acquisitions = random_acquisitions(10)
+
+    with ismrmrd.File(filename) as file:
+        assert(file.keys() == {'dataset', 'dataset2' })
+
 @nose.tools.raises(TypeError)
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_file_cannot_write_image_on_data():
