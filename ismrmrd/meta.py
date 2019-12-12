@@ -28,7 +28,7 @@ class Meta(dict):
         # this is a 'workaround' to get ElementTree to generate the XML declaration
         output = strout()
         tree.write(output, encoding="UTF-8", xml_declaration=True)
-        return output.getvalue()
+        return output.getvalue().decode("utf-8")
 
     @staticmethod
     def deserialize(xml):

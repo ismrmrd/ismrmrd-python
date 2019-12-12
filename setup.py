@@ -63,7 +63,7 @@ def generate_schema(schema_filename, module_name, output_directory):
 
 setup(
     name='ismrmrd',
-    version='1.6.2',
+    version='1.6.4',
     author='ISMRMRD Developers',
     author_email='ismrmrd@googlegroups.com',
     description='Python implementation of the ISMRMRD',

@@ -33,10 +33,15 @@ class DataWrapper:
 
         self.data[key] = numpy.array(iterable, dtype=self.datatype)
 
-    def from_numpy(self, raw):
+    def __repr__(self):
+        return type(self).__name__ + " containing " + self.data.__repr__()
+
+    @classmethod
+    def from_numpy(cls, raw):
         raise NotImplemented()
 
-    def to_numpy(self, item):
+    @classmethod
+    def to_numpy(cls, item):
         raise NotImplemented()
 
     datatype = None
@@ -47,7 +52,8 @@ class Acquisitions(DataWrapper):
     def __init__(self, data):
         super().__init__(data)
 
-    def from_numpy(self, raw):
+    @classmethod
+    def from_numpy(cls, raw):
         acquisition = Acquisition(raw['head'])
 
         acquisition.data[:] = raw['data'].view(np.complex64).reshape(
@@ -62,7 +68,8 @@ class Acquisitions(DataWrapper):
 
         return acquisition
 
-    def to_numpy(self, acq):
+    @classmethod
+    def to_numpy(cls, acq):
         return (
             np.frombuffer(acq.getHead(), dtype=acquisition_header_dtype),
             acq.traj.view(np.float32).reshape((acq.number_of_samples * acq.trajectory_dimensions,)),
@@ -77,7 +84,8 @@ class Waveforms(DataWrapper):
     def __init__(self, data):
         super().__init__(data)
 
-    def from_numpy(self, raw):
+    @classmethod
+    def from_numpy(cls, raw):
         # This lovely roundabout way of reading a waveform header is due largely to h5's handling
         # of padding and alignment. Nu guarantees are given, so we need create a structured array
         # with a header to have the contents filled in correctly. We start with an array of
@@ -93,7 +101,8 @@ class Waveforms(DataWrapper):
 
         return waveform
 
-    def to_numpy(self, wav):
+    @classmethod
+    def to_numpy(cls, wav):
         return (
             np.frombuffer(wav.getHead(), dtype=waveform_header_dtype),
             wav.data.view(np.uint32).reshape((wav.channels * wav.number_of_samples,))
@@ -136,12 +145,14 @@ class Images:
         self.data[key] = numpy.stack([data for _, data, __ in iterable])
         self.attributes[key] = numpy.stack([attributes for _, __, attributes in iterable])
 
-    def from_numpy(self, header, data, attributes):
+    @classmethod
+    def from_numpy(cls, header, data, attributes):
         image = Image(header, attributes)
         image.data[:] = data
         return image
 
-    def to_numpy(self, image):
+    @classmethod
+    def to_numpy(cls, image):
         header = np.frombuffer(image.getHead(), dtype=image_header_dtype)
         data = image.data
         attributes = image.attribute_string
@@ -233,8 +244,7 @@ class Container(Folder):
         if self.has_images():
             raise TypeError("Cannot add acquisitions when images are present.")
 
-        converter = Acquisitions(None)
-        buffer = numpy.array([converter.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
+        buffer = numpy.array([Acquisitions.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
 
         self.__del_acquisitions()
         self._contents['data'] = buffer
