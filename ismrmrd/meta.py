@@ -33,6 +33,9 @@ class Meta(dict):
     @staticmethod
     def deserialize(xml):
         """Creates a Meta instance from an ISMRMRD Meta XML string"""
+        if len(xml) == 0:
+            return Meta()
+
         root = ET.fromstring(xml)
         assert root.tag == 'ismrmrdMeta'
 
