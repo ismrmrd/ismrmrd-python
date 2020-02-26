@@ -214,16 +214,3 @@ def test_serialization_with_header_fields():
 @nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialization_from_too_few_bytes():
     ismrmrd.Image.from_bytes(b'')
-
-
-@nose.tools.with_setup(setup=common.seed_random_generators)
-def test_serialization_of_unicode_attribute_string():
-
-    image_data = common.create_random_array((128, 128), dtype=np.float32)
-    image = ismrmrd.Image.from_array(image_data)
-
-    image.attribute_string = u"يتم ترجمتها باستخدام مترجم جوجل."
-
-    read_image = ismrmrd.Image.from_bytes(image.to_bytes())
-
-    assert image == read_image
