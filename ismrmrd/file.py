@@ -147,7 +147,7 @@ class Images:
 
     @classmethod
     def from_numpy(cls, header, data, attributes):
-        image = Image(header, attributes)
+        image = Image(header, attributes.decode('ascii', 'strict'))
         image.data[:] = data
         return image
 
@@ -155,7 +155,7 @@ class Images:
     def to_numpy(cls, image):
         header = np.frombuffer(image.getHead(), dtype=image_header_dtype)
         data = image.data
-        attributes = image.attribute_string
+        attributes = image.attribute_string.encode(encoding='ascii', errors='strict')
 
         return header, data, attributes
 
@@ -302,7 +302,7 @@ class Container(Folder):
         self.__del_images()
         self._contents.create_dataset('data', data=data)
         self._contents.create_dataset('header', data=headers)
-        self._contents.create_dataset('attributes', shape=attributes.shape, dtype=h5py.special_dtype(vlen=str))
+        self._contents.create_dataset('attributes', shape=attributes.shape, dtype=h5py.special_dtype(vlen=bytes))
         self._contents['attributes'][:] = attributes
 
     def __del_images(self):
@@ -319,8 +319,8 @@ class Container(Folder):
 
     def __set_header(self, header):
         self.__del_header()
-        self._contents.create_dataset('xml', shape=(1,), dtype=h5py.special_dtype(vlen=str))
-        self._contents['xml'][0] = header.toxml('utf-8')
+        self._contents.create_dataset('xml', shape=(1,), dtype=h5py.special_dtype(vlen=bytes))
+        self._contents['xml'][0] = header.toxml('ascii')
 
     def __del_header(self):
         if 'xml' in self._contents:
