@@ -3,7 +3,6 @@ from setuptools import setup
 from distutils.command.build import build
 from distutils.command.build_py import build_py
 
-import pyxb.binding.generate
 import logging
 logging.basicConfig()
 log_ = logging.getLogger(__name__)
@@ -33,6 +32,7 @@ class my_build_py(build_py):
 def generate_schema(schema_filename, module_name, output_directory):
     """ Extracted from the `pyxbgen` tool provided by
     PyXB (http://pyxb.sourceforge.net/) """
+    import pyxb.binding.generate
     generator = pyxb.binding.generate.Generator()
     parser = generator.optionParser()
     (options, args) = parser.parse_args(args=[
