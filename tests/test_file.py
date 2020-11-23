@@ -411,4 +411,5 @@ def test_file_can_read_and_write_headers():
 
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
-        assert ismrmrd.xsd.ToXML(header) == ismrmrd.xsd.ToXML(dataset)
+        assert ismrmrd.xsd.ToXML(header) == ismrmrd.xsd.ToXML(dataset.header)
+        assert header == dataset.header

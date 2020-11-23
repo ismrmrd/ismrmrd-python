@@ -149,7 +149,7 @@ class Images:
     @classmethod
     def from_numpy(cls, header, data, attributes):
         image = Image(header, attributes.decode('ascii', 'strict'))
-        image.data[:] = data.view(np.complex64)
+        image.data[:] = data.astype(image.data.dtype)
         return image
 
     @classmethod

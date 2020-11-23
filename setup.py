@@ -12,6 +12,8 @@ from xsdata.models.config import  OutputStructure
 import logging
 import shutil
 from pathlib import Path
+import re 
+
 logging.basicConfig()
 log_ = logging.getLogger(__name__)
 
@@ -28,22 +30,41 @@ class my_build_py(build_py):
         # honor the --dry-run flag
         if not self.dry_run:
             outloc = self.get_package_dir('ismrmrd')
-            generate_schema(schema_file, config_file)
+            outloc = os.path.join(outloc,'xsd/')
+
+            
+            generate_schema(schema_file, config_file, outloc)
                     # distutils uses old-style classes, so no super()
         build_py.run(self)
 
-def generate_schema(schema_filename, config_filename ):
+
+def fix_init_file(package_name,filepath):
+
+    with open(filepath,'r+') as f:
+        text = f.read()
+        text = re.sub(f'from {package_name}.ismrmrd', 'from .ismrmrd',text)
+        f.seek(0)
+        f.write(text)
+        f.truncate()
+
+
+
+
+def generate_schema(schema_filename, config_filename, outloc  ):
 
     def to_uri(filename):
         return Path(filename).absolute().as_uri()
 
+    subpackage_name = 'ismrmrdschema'
     logger.setLevel(logging.INFO)
     config = GeneratorConfig.read(Path(config_filename))
     config.output.format = OutputFormat("pydata")
-    config.output.package = 'xsd'
+    config.output.package = subpackage_name 
     transformer = SchemaTransformer(config=config,print=False)
     transformer.process_schemas([to_uri(schema_filename)])
-    shutil.move('xsd','ismrmrd/xsd')
+    fix_init_file(subpackage_name,f"{subpackage_name}/__init__.py")
+    shutil.rmtree(os.path.join(outloc,subpackage_name),ignore_errors=True)
+    shutil.move(subpackage_name,outloc)
 
 setup(
     name='ismrmrd',
