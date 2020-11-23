@@ -11,7 +11,7 @@
         <xs:element maxOccurs="1" minOccurs="0" name="measurementInformation" type="measurementInformationType"/>
         <xs:element maxOccurs="1" minOccurs="0" name="acquisitionSystemInformation" type="acquisitionSystemInformationType"/>
         <xs:element maxOccurs="1" minOccurs="1" name="experimentalConditions" type="experimentalConditionsType"/>
-        <xs:element maxOccurs="unbounded" minOccurs="1" name="encoding" type="encoding"/>
+        <xs:element maxOccurs="unbounded" minOccurs="1" name="encoding" type="encodingType"/>
         <xs:element maxOccurs="1" minOccurs="0" name="sequenceParameters" type="sequenceParametersType"/>
         <xs:element maxOccurs="1" minOccurs="0" name="userParameters" type="userParameters"/>
        <xs:element maxOccurs="32" minOccurs="0" name="waveformInformation" type="waveformInformation" />
@@ -108,7 +108,7 @@
     </xs:all>
   </xs:complexType>
 
-  <xs:complexType name="encoding">
+  <xs:complexType name="encodingType">
     <xs:all>
       <xs:element maxOccurs="1" minOccurs="1" name="encodedSpace" type="encodingSpaceType"/>
       <xs:element maxOccurs="1" minOccurs="1" name="reconSpace" type="encodingSpaceType"/>

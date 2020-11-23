@@ -3,12 +3,20 @@ from setuptools import setup
 from distutils.command.build import build
 from distutils.command.build_py import build_py
 
-import pyxb.binding.generate
+from xsdata.codegen.transformer import SchemaTransformer
+from xsdata.exceptions import CodeGenerationError
+from xsdata.logger import logger
+from xsdata.models.config import GeneratorConfig
+from xsdata.models.config import OutputFormat
+from xsdata.models.config import  OutputStructure
 import logging
+import shutil
+from pathlib import Path
 logging.basicConfig()
 log_ = logging.getLogger(__name__)
 
 schema_file = os.path.join('schema','ismrmrd.xsd')
+config_file = os.path.join('schema','.xsdata.xml')
 
 class my_build(build):
     def run(self):
@@ -20,46 +28,22 @@ class my_build_py(build_py):
         # honor the --dry-run flag
         if not self.dry_run:
             outloc = self.get_package_dir('ismrmrd')
-            modname = 'xsd'
-            modfile = os.path.join(outloc, '%s.py' % modname)
-            generate_schema(schema_file, modname, outloc)
-            with open(modfile, 'a') as f:
-                f.write('\nimport pyxb.utils.domutils\n' +
-                        'pyxb.utils.domutils.BindingDOMSupport.SetDefaultNamespace(Namespace)\n')
-
-        # distutils uses old-style classes, so no super()
+            generate_schema(schema_file, config_file)
+                    # distutils uses old-style classes, so no super()
         build_py.run(self)
 
-def generate_schema(schema_filename, module_name, output_directory):
-    """ Extracted from the `pyxbgen` tool provided by
-    PyXB (http://pyxb.sourceforge.net/) """
-    generator = pyxb.binding.generate.Generator()
-    parser = generator.optionParser()
-    (options, args) = parser.parse_args(args=[
-        '-u', '%s' % schema_filename,
-        '-m', module_name,
-        '--binding-root=%s' % output_directory
-        ])
+def generate_schema(schema_filename, config_filename ):
 
-    generator.applyOptionValues(options, args)
-    generator.resolveExternalSchema()
+    def to_uri(filename):
+        return Path(filename).absolute().as_uri()
 
-    if 0 == len(generator.namespaces()):
-        raise RuntimeError("error creating PyXB generator")
-
-    # Save binding source first, so name-in-binding is stored in the
-    # parsed schema file
-    try:
-        tns = generator.namespaces().pop()
-        modules = generator.bindingModules()
-        top_module = None
-        path_dirs = set()
-        for m in modules:
-            m.writeToModuleFile()
-        generator.writeNamespaceArchive()
-    except Exception as e:
-        raise RuntimeError("error generating bindings (%s)" % e)
-
+    logger.setLevel(logging.INFO)
+    config = GeneratorConfig.read(Path(config_filename))
+    config.output.format = OutputFormat("pydata")
+    config.output.package = 'xsd'
+    transformer = SchemaTransformer(config=config,print=False)
+    transformer.process_schemas([to_uri(schema_filename)])
+    shutil.move('xsd','ismrmrd/xsd')
 
 setup(
     name='ismrmrd',
