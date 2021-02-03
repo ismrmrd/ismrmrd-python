@@ -3,12 +3,6 @@ from setuptools import setup, find_packages
 from distutils.command.build import build
 from distutils.command.build_py import build_py
 
-from xsdata.codegen.transformer import SchemaTransformer
-from xsdata.exceptions import CodeGenerationError
-from xsdata.logger import logger
-from xsdata.models.config import GeneratorConfig
-from xsdata.models.config import OutputFormat
-from xsdata.models.config import  OutputStructure
 import logging
 import shutil
 from pathlib import Path
@@ -47,6 +41,13 @@ def fix_init_file(package_name,filepath):
 
 def generate_schema(schema_filename, config_filename, outloc  ):
 
+    from xsdata.codegen.transformer import SchemaTransformer
+    from xsdata.exceptions import CodeGenerationError
+    from xsdata.logger import logger
+    from xsdata.models.config import GeneratorConfig
+    from xsdata.models.config import OutputFormat
+    from xsdata.models.config import  OutputStructure
+
     def to_uri(filename):
         return Path(filename).absolute().as_uri()
 
@@ -78,7 +79,7 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
-    install_requires=['PyXB', 'numpy', 'h5py>=2.3'],
+    install_requires=['xsdata>=21', 'numpy', 'h5py>=2.3'],
     setup_requires=['nose>=1.0', 'pyxb'],
     test_suite='nose.collector',
     cmdclass={'build_py':my_build_py}
