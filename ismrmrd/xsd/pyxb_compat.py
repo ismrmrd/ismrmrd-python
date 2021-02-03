@@ -5,6 +5,7 @@ from xsdata.formats.dataclass.parsers.config import ParserConfig
 
 from xsdata.formats.dataclass.serializers import XmlSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
+import xml.dom.minidom as md
 
 def CreateFromDocument(document):
     parser = XmlParser(config=ParserConfig(fail_on_unknown_properties=True))
@@ -18,4 +19,9 @@ def ToXML(header: ismrmrdHeader , encoding='ascii'):
     serializer = XmlSerializer(config)
     return serializer.render(header)
 
-ismrmrdHeader.ToXML = ToXML
+def ToDOM(header: ismrmrdHeader):
+    return md.parseString(ToXML(header))
+
+
+ismrmrdHeader.toXML = ToXML
+ismrmrdHeader.toDOM = ToDOM
