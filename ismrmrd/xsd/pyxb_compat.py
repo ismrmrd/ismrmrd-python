@@ -4,6 +4,7 @@ from xsdata.formats.dataclass.parsers import XmlParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 
 from xsdata.formats.dataclass.serializers import XmlSerializer
+from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
 def CreateFromDocument(document):
     parser = XmlParser(config=ParserConfig(fail_on_unknown_properties=True))
@@ -12,6 +13,9 @@ def CreateFromDocument(document):
     return parser.from_bytes(document,ismrmrdHeader)
 
 
-def ToXML(header : ismrmrdHeader, encoding = 'ascii'):
-    serializer = XmlSerializer(encoding=encoding, pretty_print=True)
+def ToXML(header: ismrmrdHeader , encoding='ascii'):
+    config = SerializerConfig(encoding=encoding,pretty_print=True)
+    serializer = XmlSerializer(config)
     return serializer.render(header)
+
+ismrmrdHeader.ToXML = ToXML

@@ -8,15 +8,30 @@
   </Output>
   <Conventions>
     <ClassName case="camelCase" safePrefix="type"/>
-    <FieldName case="snakeCase" safePrefix="value"/>
-    <ModuleName case="snakeCase" safePrefix="mod"/>
-    <PackageName case="snakeCase" safePrefix="pkg"/>
+    <FieldName case="camelCase" safePrefix="value"/>
+    <ModuleName case="camelCase" safePrefix="mod"/>
+    <PackageName case="camelCase" safePrefix="pkg"/>
   </Conventions>
   <Aliases>
-    <ClassName source="fooType" target="Foo"/>
-    <ClassName source="ABCSomething" target="ABCSomething"/>
-    <FieldName source="ChangeofGauge" target="change_of_gauge"/>
-    <PackageName source="http://www.w3.org/1999/xhtml" target="xtml"/>
-    <ModuleName source="2010.1" target="2020a"/>
+    <FieldName source="kspace_encoding_step_0" target="kspace_encoding_step_0"/>
+    <FieldName source="kspace_encoding_step_1" target="kspace_encoding_step_1"/>
+    <FieldName source="kspace_encoding_step_2" target="kspace_encoding_step_2"/>
+    <FieldName source="H1resonanceFrequency_Hz" target="H1resonanceFrequency_Hz"/>
+    <FieldName source="referencedSOPInstanceUID" target="referencedSOPInstanceUID" />
+    <FieldName source="TR" target="TR" />
+    <FieldName source="TE" target="TE" />
+    <FieldName source="TI" target="TI" />
+    <FieldName source="flipAngle_deg" target="flipAngle_deg" />
+    <FieldName source="sequence_type" target="sequence_type" />
+    <FieldName source="echo_spacing" target="echo_spacing" />
+    <FieldName source="studyInstanceUID" target="studyInstanceUID" />
+    <FieldName source="patientWeight_kg" target="patientWeight_kg" />
+    <FieldName source="patientID" target="patientID" />
+    <FieldName source="systemFieldStrength_T" target="systemFieldStrength_T" />
+    <FieldName source="fieldOfView_mm" target="fieldOfView_mm" />
+    <FieldName source="measurementID" target="measurementID" />
+    <FieldName source="seriesInstanceUIDRoot" target="seriesInstanceUIDRoot" />
+    <FieldName source="frameOfReferenceUID" target="frameOfReferenceUID" />
+    <FieldName source="studyID" target="studyID" />
   </Aliases>
 </Config>
