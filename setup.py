@@ -64,7 +64,7 @@ def generate_schema(schema_filename, config_filename, outloc  ):
 
 setup(
     name='ismrmrd',
-    version='1.6.6',
+    version='1.7.1',
     author='ISMRMRD Developers',
     author_email='ismrmrd@googlegroups.com',
     description='Python implementation of the ISMRMRD',
@@ -80,7 +80,7 @@ setup(
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
     install_requires=['xsdata>=21', 'numpy', 'h5py>=2.3'],
-    setup_requires=['nose>=1.0', 'pyxb'],
+    setup_requires=['nose>=1.0', 'xsdata>=21'],
     test_suite='nose.collector',
     cmdclass={'build_py':my_build_py}
 )
