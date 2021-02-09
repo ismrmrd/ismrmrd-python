@@ -7,4 +7,5 @@ from .waveform import *
 from .file import File
 
 from . import xsd
-__all__ = ['xsd']
+
+

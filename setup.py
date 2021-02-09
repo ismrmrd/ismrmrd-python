@@ -1,65 +1,66 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from distutils.command.build import build
 from distutils.command.build_py import build_py
 
 import logging
+import shutil
+from pathlib import Path
+import re 
+
 logging.basicConfig()
 log_ = logging.getLogger(__name__)
 
 schema_file = os.path.join('schema','ismrmrd.xsd')
-
-class my_build(build):
-    def run(self):
-        self.run_command("build_py")
-        build.run(self)
+config_file = os.path.join('schema','.xsdata.xml')
 
 class my_build_py(build_py):
     def run(self):
         # honor the --dry-run flag
         if not self.dry_run:
-            outloc = self.get_package_dir('ismrmrd')
-            modname = 'xsd'
-            modfile = os.path.join(outloc, '%s.py' % modname)
-            generate_schema(schema_file, modname, outloc)
-            with open(modfile, 'a') as f:
-                f.write('\nimport pyxb.utils.domutils\n' +
-                        'pyxb.utils.domutils.BindingDOMSupport.SetDefaultNamespace(Namespace)\n')
+            outloc = self.build_lib
+            outloc = os.path.join(outloc,'ismrmrd/xsd/ismrmrdschema')
 
-        # distutils uses old-style classes, so no super()
+            
+            generate_schema(schema_file, config_file, outloc)
+                    # distutils uses old-style classes, so no super()
         build_py.run(self)
 
-def generate_schema(schema_filename, module_name, output_directory):
-    """ Extracted from the `pyxbgen` tool provided by
-    PyXB (http://pyxb.sourceforge.net/) """
-    import pyxb.binding.generate
-    generator = pyxb.binding.generate.Generator()
-    parser = generator.optionParser()
-    (options, args) = parser.parse_args(args=[
-        '-u', '%s' % schema_filename,
-        '-m', module_name,
-        '--binding-root=%s' % output_directory
-        ])
 
-    generator.applyOptionValues(options, args)
-    generator.resolveExternalSchema()
+def fix_init_file(package_name,filepath):
 
-    if 0 == len(generator.namespaces()):
-        raise RuntimeError("error creating PyXB generator")
+    with open(filepath,'r+') as f:
+        text = f.read()
+        text = re.sub(f'from {package_name}.ismrmrd', 'from .ismrmrd',text)
+        f.seek(0)
+        f.write(text)
+        f.truncate()
 
-    # Save binding source first, so name-in-binding is stored in the
-    # parsed schema file
-    try:
-        tns = generator.namespaces().pop()
-        modules = generator.bindingModules()
-        top_module = None
-        path_dirs = set()
-        for m in modules:
-            m.writeToModuleFile()
-        generator.writeNamespaceArchive()
-    except Exception as e:
-        raise RuntimeError("error generating bindings (%s)" % e)
 
+
+
+def generate_schema(schema_filename, config_filename, outloc  ):
+
+    from xsdata.codegen.transformer import SchemaTransformer
+    from xsdata.exceptions import CodeGenerationError
+    from xsdata.logger import logger
+    from xsdata.models.config import GeneratorConfig
+    from xsdata.models.config import OutputFormat
+    from xsdata.models.config import  OutputStructure
+
+    def to_uri(filename):
+        return Path(filename).absolute().as_uri()
+
+    subpackage_name = 'ismrmrdschema'
+    logger.setLevel(logging.INFO)
+    config = GeneratorConfig.read(Path(config_filename))
+    config.output.format = OutputFormat("pydata")
+    config.output.package = subpackage_name 
+    transformer = SchemaTransformer(config=config,print=False)
+    transformer.process_schemas([to_uri(schema_filename)])
+    fix_init_file(subpackage_name,f"{subpackage_name}/__init__.py")
+    shutil.rmtree(os.path.join(outloc,subpackage_name),ignore_errors=True)
+    shutil.move(subpackage_name,outloc)
 
 setup(
     name='ismrmrd',
@@ -70,7 +71,7 @@ setup(
     license='Public Domain',
     keywords='ismrmrd',
     url='https://ismrmrd.github.io',
-    packages=['ismrmrd'],
+    packages=find_packages(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
@@ -78,8 +79,8 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
     ],
-    install_requires=['PyXB', 'numpy', 'h5py>=2.3'],
+    install_requires=['xsdata>=21', 'numpy', 'h5py>=2.3'],
     setup_requires=['nose>=1.0', 'pyxb'],
     test_suite='nose.collector',
-    cmdclass={'build_py':my_build_py,'build':my_build}
+    cmdclass={'build_py':my_build_py}
 )

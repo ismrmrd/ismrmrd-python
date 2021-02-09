@@ -5,6 +5,7 @@ from .hdf5 import *
 from .acquisition import *
 from .waveform import *
 from .image import *
+from .xsd import ToXML
 
 
 class DataWrapper:
@@ -148,7 +149,7 @@ class Images:
     @classmethod
     def from_numpy(cls, header, data, attributes):
         image = Image(header, attributes.decode('ascii', 'strict'))
-        image.data[:] = data
+        image.data[:] = data.astype(image.data.dtype)
         return image
 
     @classmethod
@@ -320,7 +321,7 @@ class Container(Folder):
     def __set_header(self, header):
         self.__del_header()
         self._contents.create_dataset('xml', shape=(1,), dtype=h5py.special_dtype(vlen=bytes))
-        self._contents['xml'][0] = header.toxml('ascii')
+        self._contents['xml'][0] = ToXML(header)
 
     def __del_header(self):
         if 'xml' in self._contents:
