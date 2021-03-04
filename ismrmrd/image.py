@@ -3,6 +3,8 @@ import ctypes
 import numpy as np
 import copy
 import io
+import warnings
+warnings.simplefilter('default')
 
 from .acquisition import Acquisition
 from .flags import FlagsMixin
@@ -158,7 +160,7 @@ class Image(FlagsMixin):
             return stream.getvalue()
 
     @staticmethod
-    def from_array(array, acquisition=Acquisition(), **kwargs):
+    def from_array(array, acquisition=Acquisition(),transpose=True, **kwargs):
 
         def input_shape_to_header_format(array):
             def with_defaults(first=1, second=1, third=1, nchannels=1):
@@ -181,7 +183,20 @@ class Image(FlagsMixin):
         header = ImageHeader.from_acquisition(acquisition, **dict(image_properties, **kwargs))
 
         image = Image(head=header)
-        image.data[:] = np.resize(array.transpose(), header_format_to_resize_shape(nchannels, *matrix_size))
+        
+        if transpose:
+            warnings.warn(
+                "The default behavior of this function is currently column-major which " +
+                "is inconsistent with numpy using row-major by default. In a future " +
+                "version this will be changed. Please switch to setting transpose in " +
+                "this function to false to switch to the new behavior.",
+                 PendingDeprecationWarning
+            )
+            data = array.transpose()
+        else:
+            data = array
+        
+        image.data[:] = np.resize(data, header_format_to_resize_shape(nchannels, *matrix_size))
 
         return image
 
