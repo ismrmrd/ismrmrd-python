@@ -40,24 +40,15 @@ def fix_init_file(package_name,filepath):
 
 
 def generate_schema(schema_filename, config_filename, outloc  ):
-
-    from xsdata.codegen.transformer import SchemaTransformer
-    from xsdata.exceptions import CodeGenerationError
-    from xsdata.logger import logger
-    from xsdata.models.config import GeneratorConfig
-    from xsdata.models.config import OutputFormat
-    from xsdata.models.config import  OutputStructure
-
     def to_uri(filename):
         return Path(filename).absolute().as_uri()
 
+    import xsdata
+    import subprocess
+    
     subpackage_name = 'ismrmrdschema'
-    logger.setLevel(logging.INFO)
-    config = GeneratorConfig.read(Path(config_filename))
-    config.output.format = OutputFormat("pydata")
-    config.output.package = subpackage_name 
-    transformer = SchemaTransformer(config=config,print=False)
-    transformer.process_schemas([to_uri(schema_filename)])
+    args = ['xsdata', str(schema_filename), '--config',str(config_filename), '--package',subpackage_name]
+    subprocess.run(args)
     fix_init_file(subpackage_name,f"{subpackage_name}/__init__.py")
     shutil.rmtree(os.path.join(outloc,subpackage_name),ignore_errors=True)
     shutil.move(subpackage_name,outloc)
@@ -66,7 +57,7 @@ setup(
     name='ismrmrd',
     version='1.7.1',
     author='ISMRMRD Developers',
-    author_email='ismrmrd@googlegroups.com',
+    author_email='dchansen@gradientsoftware.net',
     description='Python implementation of the ISMRMRD',
     license='Public Domain',
     keywords='ismrmrd',
@@ -78,7 +69,7 @@ setup(
         'License :: Public Domain',
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
-    ],
+        ],
     install_requires=['xsdata>=21', 'numpy', 'h5py>=2.3'],
     setup_requires=['nose>=1.0', 'xsdata>=21'],
     test_suite='nose.collector',
