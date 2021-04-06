@@ -18,7 +18,7 @@ class FlagsMixin(object):
         self.flags = 0
 
     def is_flag_set(self, flag):
-        return self.flags & (1 << (flag - 1))
+        return bool(self.flags & (1 << (flag - 1)))
 
     def set_flag(self, flag):
         self.flags |= (1 << (flag - 1))
