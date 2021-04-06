@@ -43,11 +43,11 @@ def generate_schema(schema_filename, config_filename, outloc  ):
     def to_uri(filename):
         return Path(filename).absolute().as_uri()
 
-    import xsdata
+    import sys 
     import subprocess
     
     subpackage_name = 'ismrmrdschema'
-    args = ['xsdata', str(schema_filename), '--config',str(config_filename), '--package',subpackage_name]
+    args = [sys.executable,'-m',xsdata', str(schema_filename), '--config',str(config_filename), '--package',subpackage_name]
     subprocess.run(args)
     fix_init_file(subpackage_name,f"{subpackage_name}/__init__.py")
     shutil.rmtree(os.path.join(outloc,subpackage_name),ignore_errors=True)
