@@ -17,7 +17,7 @@ def CreateFromDocument(document):
 def ToXML(header: ismrmrdHeader , encoding='ascii'):
     config = SerializerConfig(encoding=encoding,pretty_print=True)
     serializer = XmlSerializer(config)
-    return serializer.render(header)
+    return serializer.render(header,ns_map={"":"http://www.ismrm.org/ISMRMRD"})
 
 def ToDOM(header: ismrmrdHeader):
     return md.parseString(ToXML(header))
