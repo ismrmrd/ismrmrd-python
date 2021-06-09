@@ -1,3 +1,4 @@
+from ismrmrd.meta import Meta
 import itertools
 import ctypes
 import numpy as np
@@ -113,8 +114,8 @@ class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
 
 # Image class
 class Image(FlagsMixin):
-    __readonly = ('data_type', 'matrix_size', 'channels', 'attribute_string_len')
-    __ignore = ('matrix_size')
+    __readonly = ('data_type', 'matrix_size', 'channels')
+    __ignore = ('matrix_size','attribute_string_len')
 
     @staticmethod
     def deserialize_from(read_exactly):
@@ -122,7 +123,7 @@ class Image(FlagsMixin):
         header_bytes = read_exactly(ctypes.sizeof(ImageHeader))
         attribute_length_bytes = read_exactly(ctypes.sizeof(ctypes.c_uint64))
         attribute_length = ctypes.c_uint64.from_buffer_copy(attribute_length_bytes)
-        attribute_bytes = read_exactly(attribute_length.value)
+        attribute_bytes = read_exactly(attribute_length.value).rstrip(b'\0')
 
         image = Image(header_bytes, attribute_bytes.decode('utf-8'))
 
@@ -141,6 +142,7 @@ class Image(FlagsMixin):
     def serialize_into(self, write):
 
         attribute_bytes = self.attribute_string.encode('utf-8')
+        self.__head.attribute_string_len = len(attribute_bytes)
 
         write(self.__head)
 
@@ -200,7 +202,7 @@ class Image(FlagsMixin):
 
         return image
 
-    def __init__(self, head=None, attribute_string=""):
+    def __init__(self, head=None, attribute_string=None, meta = None ):
         if head is None:
             self.__head = ImageHeader()
             self.__head.data_type = DATATYPE_CXFLOAT
@@ -211,10 +213,16 @@ class Image(FlagsMixin):
                                           self.__head.matrix_size[1], self.__head.matrix_size[0]),
                                    dtype=get_dtype_from_data_type(self.__head.data_type))
 
-        # TODO do we need to check if attribute_string is really a string?
-        self.__attribute_string = attribute_string
-        if (len(self.__attribute_string) != self.__head.attribute_string_len):
-            raise ValueError("attribute_string and head.attribute_string_len are inconsistent.")
+        if attribute_string is not None:
+            if meta is not None:
+                raise RuntimeError("Attribute string and meta cannot be set simulatnously.")
+            self.__meta = Meta.deserialize(attribute_string)
+        elif meta is not None:
+            self.__meta = meta
+        else:
+            self.__meta = Meta()
+
+            
 
         for (field, type) in self.__head._fields_:
             if field in self.__ignore:
@@ -271,16 +279,33 @@ class Image(FlagsMixin):
 
     @property
     def attribute_string(self):
-        return self.__attribute_string
+        return self.__meta.serialize()
 
     @attribute_string.setter
     def attribute_string(self, val):
-        self.__attribute_string = val
-        self.__head.attribute_string_len = len(self.__attribute_string)
+        self.__meta = Meta.deserialize(val)
+
+    @property
+    def meta(self):
+        return self.__meta
+
+    @meta.setter
+    def meta(self,val):
+        if type(val) == Meta:
+            self.__meta = val
+        elif type(val) == dict:
+            self.__meta = Meta()
+            self.__meta.update(val)
+        else:
+            raise RuntimeError("meta must be of type Meta or dict")
 
     @property
     def matrix_size(self):
         return self.__data.shape[1:4]
+        
+    @property
+    def attribute_string_len(self):
+        return len(self.attribute_string)
 
     def __str__(self):
         return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.__attribute_string,

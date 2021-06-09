@@ -12,6 +12,8 @@ class Meta(dict):
 
     def serialize(self):
         """Converts a Meta instance into a "valid" ISMRMRD Meta XML string"""
+        if not self: return ""
+        
         root = ET.Element('ismrmrdMeta')
         tree = ET.ElementTree(root)
         for k, v in self.items():
@@ -68,3 +70,15 @@ class Meta(dict):
                 meta[key] = value
 
         return meta
+    
+    def append(self, key,value):
+        if key in self:
+            v = self[key]
+            if type(v) == list:
+                self[key].append(value)
+            else:
+                self[key] = [v,value]
+        else:
+            self[key] = [value]
+
+
