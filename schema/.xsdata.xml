@@ -2,7 +2,7 @@
 <Config xmlns="http://pypi.org/project/xsdata" version="20.11.1">
   <Output wsdl="false">
     <Package>generated</Package>
-    <Format>pydata</Format>
+    <Format>dataclasses</Format>
     <Structure>filenames</Structure>
     <CompoundFields>false</CompoundFields>
   </Output>
