@@ -162,16 +162,26 @@ class Image(FlagsMixin):
             return stream.getvalue()
 
     @staticmethod
-    def from_array(array, acquisition=Acquisition(),transpose=True, **kwargs):
+    def from_array(array, acquisition=Acquisition(), transpose=True, **kwargs):
 
         def input_shape_to_header_format(array):
             def with_defaults(first=1, second=1, third=1, nchannels=1):
                 return nchannels, (first, second, third)
 
-            return with_defaults(*array.shape)
+            return with_defaults(*reversed(array.shape))
 
         def header_format_to_resize_shape(nchannels, first, second, third):
             return nchannels, third, second, first
+
+        if transpose:
+            warnings.warn(
+                "The default behavior of this function is currently column-major which " +
+                "is inconsistent with numpy using row-major by default. In a future " +
+                "version this will be changed. Please switch to setting transpose in " +
+                "this function to false to switch to the new behavior.",
+                 PendingDeprecationWarning
+            )
+            array = array.transpose()
 
         nchannels, matrix_size = input_shape_to_header_format(array)
 
@@ -183,26 +193,13 @@ class Image(FlagsMixin):
         }
 
         header = ImageHeader.from_acquisition(acquisition, **dict(image_properties, **kwargs))
-
         image = Image(head=header)
-        
-        if transpose:
-            warnings.warn(
-                "The default behavior of this function is currently column-major which " +
-                "is inconsistent with numpy using row-major by default. In a future " +
-                "version this will be changed. Please switch to setting transpose in " +
-                "this function to false to switch to the new behavior.",
-                 PendingDeprecationWarning
-            )
-            data = array.transpose()
-        else:
-            data = array
-        
-        image.data[:] = np.resize(data, header_format_to_resize_shape(nchannels, *matrix_size))
+
+        image.data[:] = np.resize(array, header_format_to_resize_shape(nchannels, *matrix_size))
 
         return image
 
-    def __init__(self, head=None, attribute_string=None, meta = None ):
+    def __init__(self, head=None, attribute_string=None, meta=None):
         if head is None:
             self.__head = ImageHeader()
             self.__head.data_type = DATATYPE_CXFLOAT
