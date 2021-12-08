@@ -124,7 +124,7 @@
   <xs:complexType name="encodingSpaceType">
     <xs:all>
       <xs:element maxOccurs="1" minOccurs="1" name="matrixSize" type="matrixSizeType" />
-      <xs:element maxOccurs="1" minOccurs="1" name="fieldOfView_mm" type="fieldOfView_mm" />
+      <xs:element maxOccurs="1" minOccurs="1" name="fieldOfView_mm" type="fieldOfView_mmType" />
     </xs:all>
   </xs:complexType>
 
@@ -136,7 +136,7 @@
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="fieldOfView_mm">
+  <xs:complexType name="fieldOfView_mmType">
     <xs:sequence>
       <xs:element maxOccurs="1" minOccurs="1" name="x" type="xs:float" />
       <xs:element maxOccurs="1" minOccurs="1" name="y" type="xs:float" />

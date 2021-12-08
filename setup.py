@@ -55,7 +55,7 @@ def generate_schema(schema_filename, config_filename, outloc  ):
 
 setup(
     name='ismrmrd',
-    version='1.9.3',
+    version='1.9.4',
     author='ISMRMRD Developers',
     author_email='dchansen@gradientsoftware.net',
     description='Python implementation of the ISMRMRD',
