@@ -5,6 +5,7 @@ import numpy as np
 import copy
 import io
 import warnings
+
 warnings.simplefilter('default')
 
 from .acquisition import Acquisition
@@ -111,11 +112,22 @@ class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
 
+    def __repr__(self):
+        retstr = 'ImageHeader('
+        for field_name, field_type in self._fields_:
+            var = getattr(self, field_name)
+            if hasattr(var, '_length_'):
+                retstr += '%s: (%s), ' % (field_name, ', '.join((str(v) for v in var)))
+            else:
+                retstr += '%s: %s, ' % (field_name, var)
+        retstr += ')'
+        return retstr
+
 
 # Image class
 class Image(FlagsMixin):
     __readonly = ('data_type', 'matrix_size', 'channels')
-    __ignore = ('matrix_size','attribute_string_len')
+    __ignore = ('matrix_size', 'attribute_string_len')
 
     @staticmethod
     def deserialize_from(read_exactly):
@@ -179,7 +191,7 @@ class Image(FlagsMixin):
                 "is inconsistent with numpy using row-major by default. In a future " +
                 "version this will be changed. Please switch to setting transpose in " +
                 "this function to false to switch to the new behavior.",
-                 PendingDeprecationWarning
+                PendingDeprecationWarning
             )
             array = array.transpose()
 
@@ -199,27 +211,42 @@ class Image(FlagsMixin):
 
         return image
 
-    def __init__(self, head=None, attribute_string=None, meta=None):
+    def __init__(self, head=None, attribute_string=None, meta=None, data=None):
+
+        if data is not None:
+            assert data.ndim == 4
+
+        def create_consistent_header(header, data):
+
+            if data is not None:
+                header.data_type = inverse_dtype_mapping[data.dtype]
+                header.channels = data.shape[0]
+                header.matrix_size = (data.shape[3], data.shape[2], data.shape[1])
+
+            return header
+
         if head is None:
-            self.__head = ImageHeader()
-            self.__head.data_type = DATATYPE_CXFLOAT
-            self.__data = np.empty(shape=(1, 1, 1, 0), dtype=get_dtype_from_data_type(DATATYPE_CXFLOAT))
+            if data is None:
+                data = np.empty((1, 1, 1, 0), dtype=np.complex64)
+            self.__head = create_consistent_header(ImageHeader(), data)
         else:
             self.__head = ImageHeader.from_buffer_copy(head)
-            self.__data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[2],
-                                          self.__head.matrix_size[1], self.__head.matrix_size[0]),
-                                   dtype=get_dtype_from_data_type(self.__head.data_type))
+            if data is None:
+                data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[2],
+                                              self.__head.matrix_size[1], self.__head.matrix_size[0]),
+                                       dtype=get_dtype_from_data_type(self.__head.data_type))
+            else:
+                self.__head = create_consistent_header(self.__head, data)
+        self.__data = data
 
         if attribute_string is not None:
             if meta is not None:
-                raise RuntimeError("Attribute string and meta cannot be set simulatnously.")
+                raise RuntimeError("Attribute string and meta cannot be set simultaneously.")
             self.__meta = Meta.deserialize(attribute_string)
         elif meta is not None:
             self.__meta = meta
         else:
             self.__meta = Meta()
-
-            
 
         for (field, type) in self.__head._fields_:
             if field in self.__ignore:
@@ -287,7 +314,7 @@ class Image(FlagsMixin):
         return self.__meta
 
     @meta.setter
-    def meta(self,val):
+    def meta(self, val):
         if type(val) == Meta:
             self.__meta = val
         elif type(val) == dict:
@@ -299,14 +326,17 @@ class Image(FlagsMixin):
     @property
     def matrix_size(self):
         return self.__data.shape[1:4]
-        
+
     @property
     def attribute_string_len(self):
         return len(self.attribute_string)
 
     def __str__(self):
-        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.__attribute_string,
+        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.attribute_string,
                                                                            self.__data)
+
+    def __repr__(self):
+        return f"Image(head={self.__head.__repr__()},meta={self.__meta.__repr__()},data={self.__data.__repr__()})"
 
     def __eq__(self, other):
         if not isinstance(other, Image):
@@ -315,5 +345,5 @@ class Image(FlagsMixin):
         return all([
             self.__head == other.__head,
             np.array_equal(self.__data, other.__data),
-            np.array_equal(self.__attribute_string, other.__attribute_string)
+            np.array_equal(self.attribute_string, other.attribute_string)
         ])
