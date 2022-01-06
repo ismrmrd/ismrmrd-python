@@ -214,7 +214,8 @@ class Image(FlagsMixin):
     def __init__(self, head=None, attribute_string=None, meta=None, data=None):
 
         if data is not None:
-            assert data.ndim == 4
+            assert data.ndim <= 4
+            data = np.array(data,ndmin=4,copy=False)
 
         def create_consistent_header(header, data):
 
