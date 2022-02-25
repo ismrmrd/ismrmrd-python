@@ -70,8 +70,8 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
         ],
-    install_requires=['xsdata==21.12', 'numpy', 'h5py>=2.3'],
-    setup_requires=['nose>=1.0', 'xsdata[cli]==21.12', 'jinja2 >= 2.11'],
+    install_requires=['xsdata==22.2', 'numpy', 'h5py==3.6.0'],
+    setup_requires=['nose>=1.0', 'xsdata[cli]==22.2', 'jinja2 >= 2.11'],
     test_suite='nose.collector',
     cmdclass={'build_py':my_build_py}
 )
