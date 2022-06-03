@@ -57,7 +57,7 @@ setup(
     name='ismrmrd',
     version='1.11.0',
     author='ISMRMRD Developers',
-    author_email='dchansen@gradientsoftware.net',
+    author_email='davidchansen@gradientsoftware.net',
     description='Python implementation of the ISMRMRD',
     license='Public Domain',
     keywords='ismrmrd',
