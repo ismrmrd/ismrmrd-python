@@ -65,7 +65,7 @@ setup(
     keywords='ismrmrd',
     url='https://ismrmrd.github.io',
     long_description = long_description,
-    long_description_content_type='text/markdown'
+    long_description_content_type='text/markdown',
     packages=find_packages(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
