@@ -53,6 +53,9 @@ def generate_schema(schema_filename, config_filename, outloc  ):
     shutil.rmtree(os.path.join(outloc,subpackage_name),ignore_errors=True)
     shutil.move(subpackage_name,outloc)
 
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README").read_text()
+
 setup(
     name='ismrmrd',
     version='1.12.0',
@@ -61,6 +64,8 @@ setup(
     license='Public Domain',
     keywords='ismrmrd',
     url='https://ismrmrd.github.io',
+    long_description = long_description,
+    long_description_content_type='text/markdown'
     packages=find_packages(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
