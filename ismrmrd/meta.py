@@ -38,6 +38,7 @@ class Meta(dict):
         if len(xml) == 0:
             return Meta()
 
+        print(f"THIS IS THE XML: {xml}")
         root = ET.fromstring(xml)
         assert root.tag == 'ismrmrdMeta'
 
