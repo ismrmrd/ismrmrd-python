@@ -5,7 +5,7 @@ usage()
 {
   cat << EOF
 
-Builds the ismrmrd conda package.
+Builds the ismrmrd-python conda package.
 
 Usage: $0
 EOF
