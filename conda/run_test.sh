@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-if [[ $(uname) =~ Linux ]]; then
-    cd tests
-    nosetests
-fi
+cd tests
+nosetests
 
