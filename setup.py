@@ -61,7 +61,7 @@ setup(
     version='1.12.0',
     author='ISMRMRD Developers',
     description='Python implementation of the ISMRMRD',
-    license='Public Domain',
+    license='MIT',
     keywords='ismrmrd',
     url='https://ismrmrd.github.io',
     long_description = long_description,
@@ -70,7 +70,7 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
-        'License :: Public Domain',
+        'License :: MIT',
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
         ],
