@@ -58,10 +58,10 @@ long_description = (this_directory / "README").read_text()
 
 setup(
     name='ismrmrd',
-    version='1.12.1',
+    version='1.12.2',
     author='ISMRMRD Developers',
     description='Python implementation of the ISMRMRD',
-    license='MIT',
+    license='Public Domain',
     keywords='ismrmrd',
     url='https://ismrmrd.github.io',
     long_description = long_description,
