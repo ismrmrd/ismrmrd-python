@@ -2,4 +2,4 @@
 
 set -euo pipefail
 
-python setup.py install
+pip install .
