@@ -169,7 +169,7 @@ def test_initialization_sets_nonzero_version():
 
     acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
-    assert acquisition.version is not 0, \
+    assert acquisition.version != 0, \
         "Default acquisition version should not be zero."
 
 

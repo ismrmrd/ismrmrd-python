@@ -31,7 +31,7 @@ def test_initialization_sets_nonzero_version():
 
     waveform = common.create_random_waveform()
 
-    assert waveform.version is not 0, \
+    assert waveform.version != 0, \
         "Default acquisition version should not be zero."
 
 

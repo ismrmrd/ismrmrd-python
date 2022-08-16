@@ -58,7 +58,7 @@ long_description = (this_directory / "README").read_text()
 
 setup(
     name='ismrmrd',
-    version='1.12.3',
+    version='1.12.4',
     author='ISMRMRD Developers',
     description='Python implementation of the ISMRMRD',
     license='Public Domain',
@@ -74,7 +74,7 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Medical Science Apps.'
         ],
-    install_requires=['xsdata>=22.2', 'numpy', 'h5py>=2.3'],
+    install_requires=['xsdata>=22.2', 'numpy>=1.22.0', 'h5py>=2.3'],
     setup_requires=['nose>=1.0', 'xsdata[cli]>=22.2', 'jinja2 >= 2.11'],
     test_suite='nose.collector',
     cmdclass={'build_py':my_build_py}
