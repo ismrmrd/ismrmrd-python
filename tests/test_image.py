@@ -22,6 +22,13 @@ def test_new_instance():
     eq_(type(img.data), np.ndarray)
     eq_(img.data.dtype, np.complex64)
 
+    attr = "<?xml version='1.0' encoding='UTF-8'?>\n<ismrmrdMeta><meta><name>rando</name><value>blah</value></meta></ismrmrdMeta>"
+
+    head = ismrmrd.ImageHeader()
+    head.attribute_string_len = len(attr)       # must set attribute_string_len
+    head.data_type = ismrmrd.DATATYPE_CXFLOAT   # must set data_type
+    img = ismrmrd.Image(head, attribute_string=attr)
+    eq_(img.attribute_string, attr)
 
 def test_read_only_fields():
     img = ismrmrd.Image()

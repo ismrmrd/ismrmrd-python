@@ -1,0 +1,38 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: ismrmrd-python
+  version: {{ data.get('version') }}
+
+source:
+  path: ../
+
+requirements:
+  build:
+    - python {{ python }}
+    - numpy>=1.22.0
+    - h5py>=2.3
+    - nose>=1.0
+    - xsdata>=22.2
+
+  run:
+    - python
+    - xsdata>=22.2
+    - numpy>=1.22.0
+    - h5py>=2.3
+
+test:
+  source_files:
+    - tests
+  requires:
+    - nose
+
+about:
+  home: https://github.com/ismrmrd/ismrmrd-python
+  license: MIT
+  summary: 'Python interface for ISMRMRD'
+  description: |
+    Python interface and utilities for the ISMRM Raw Data (ISMRMRD a.k.a. MRD) format.
+  dev_url: https://github.com/ismrmrd/ismrmrd-python
+  doc_url: https://github.com/ismrmrd/ismrmrd-python
+  doc_source_url: https://github.com/ismrmrd/ismrmrd-python/blob/main/README.md
