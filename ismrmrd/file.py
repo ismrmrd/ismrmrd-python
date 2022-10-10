@@ -37,6 +37,16 @@ class DataWrapper:
     def __repr__(self):
         return type(self).__name__ + " containing " + self.data.__repr__()
 
+    def append(self,item):
+        self.extend([item])
+
+    def extend(self,iterable):
+        new_data = [self.to_numpy(v) for v in iterable]
+        old_size = self.data.shape[0]
+        new_size = old_size + len(new_data)
+        self.data.resize(new_size,axis=0)
+        self.data[old_size:] = new_data
+
     @classmethod
     def from_numpy(cls, raw):
         raise NotImplemented()
@@ -248,7 +258,7 @@ class Container(Folder):
         buffer = numpy.array([Acquisitions.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
 
         self.__del_acquisitions()
-        self._contents['data'] = buffer
+        self._contents.create_dataset('data',data=buffer,maxshape=(None,),chunks=True)
 
     def __del_acquisitions(self):
         if 'data' in self._contents:
@@ -271,7 +281,7 @@ class Container(Folder):
         buffer = numpy.array([converter.to_numpy(w) for w in waveforms], dtype=waveform_dtype)
 
         self.__del_waveforms()
-        self._contents['waveforms'] = buffer
+        self._contents.create_dataset('waveforms', data=buffer, maxshape=(None,),chunks=True)
 
     def __del_waveforms(self):
         if 'waveforms' in self._contents:

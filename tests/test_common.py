@@ -121,7 +121,7 @@ def create_random_image(seed=42):
     header = create_random_image_properties()
 
     image = ismrmrd.Image.from_array(data, **header)
-    image.attribute_string = "This is a random attribute: {}".format(random.randint(0, 1000))
+    image.meta = {"Random attribute": random.randint(0,1000)}
 
     return image
 

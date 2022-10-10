@@ -22,13 +22,6 @@ def test_new_instance():
     eq_(type(img.data), np.ndarray)
     eq_(img.data.dtype, np.complex64)
 
-    attr = "this is a fake attribute string"
-    head = ismrmrd.ImageHeader()
-    head.attribute_string_len = len(attr)       # must set attribute_string_len
-    head.data_type = ismrmrd.DATATYPE_CXFLOAT   # must set data_type
-    img = ismrmrd.Image(head, attribute_string=attr)
-    eq_(img.attribute_string, attr)
-
 
 def test_read_only_fields():
     img = ismrmrd.Image()
@@ -66,7 +59,7 @@ def test_initialization_sets_nonzero_version():
 
     image = ismrmrd.Image.from_array(common.create_random_array((128, 128), dtype=np.float32))
 
-    assert image.version is not 0, \
+    assert image.version != 0, \
         "Default image version should not be zero."
 
 
@@ -133,7 +126,7 @@ def test_initialization_with_2d_image():
     assert np.array_equal(image_data.transpose(), image.data.squeeze()), \
         "Image data does not match data used to initialize image."
 
-    assert image.channels is 1, \
+    assert image.channels == 1, \
         "Unexpected number of channels: {}".format(image.channels)
 
     assert image.matrix_size == (1, 64, 128), \
@@ -149,7 +142,7 @@ def test_initialization_with_3d_image():
     assert np.array_equal(image_data.transpose(), image.data.squeeze()), \
         "Image data does not match data used to initialize image."
 
-    assert image.channels is 1, \
+    assert image.channels == 1, \
         "Unexpected number of channels: {}".format(image.channels)
 
     assert image.matrix_size == (32, 64, 128), \
@@ -165,7 +158,7 @@ def test_initialization_with_3d_image_and_channels():
     assert np.array_equal(image_data.transpose(), image.data.squeeze()), \
         "Image data does not match data used to initialize image."
 
-    assert image.channels is 16, \
+    assert image.channels == 16, \
         "Unexpected number of channels: {}".format(image.channels)
 
     assert image.matrix_size == (32, 64, 128), \
