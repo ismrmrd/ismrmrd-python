@@ -30,7 +30,6 @@ def test_new_instance():
     img = ismrmrd.Image(head, attribute_string=attr)
     eq_(img.attribute_string, attr)
 
-
 def test_read_only_fields():
     img = ismrmrd.Image()
     for field in ['data_type', 'matrix_size', 'channels', 'attribute_string_len']:

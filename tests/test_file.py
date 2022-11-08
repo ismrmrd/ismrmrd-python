@@ -52,7 +52,7 @@ def test_file_returns_none_when_no_acquisitions_present():
         dataset = file['dataset']
 
         assert dataset.has_acquisitions()
-        assert dataset.acquisitions is not None
+        assert not (dataset.acquisitions is None)
 
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
@@ -85,7 +85,7 @@ def test_file_can_delete_acquisitions():
 
         dataset.acquisitions = random_acquisitions(10)
 
-        assert dataset.acquisitions is not None
+        assert not (dataset.acquisitions is None)
         del dataset.acquisitions
         assert dataset.acquisitions is None
 
@@ -138,6 +138,26 @@ def test_file_can_write_random_acquisition():
         dataset = file['dataset']
         assert acquisition == dataset.acquisitions[200]
 
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_append_acquisitions():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(10))
+    acquisitions2 = list(random_acquisitions(10))
+    acquisition3 = next(random_acquisitions(1))
+
+    combined = acquisitions + acquisitions2 + [acquisition3]
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.acquisitions = acquisitions
+        dataset.acquisitions.extend(acquisitions2)
+        dataset.acquisitions.append(acquisition3)
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        for a, b in zip(combined, dataset.acquisitions):
+            assert a == b
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_file_can_write_random_acquisition_slice():
@@ -185,6 +205,27 @@ def test_file_can_read_and_write_waveforms():
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         for a, b in zip(waveforms, dataset.waveforms):
+            assert a == b
+
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_file_can_append_waveforms():
+
+    filename = os.path.join(temp_dir, "waveforms.h5")
+    waveforms = list(random_waveforms(10))
+    waveforms2 = list(random_waveforms(10))
+    waveform3 = next(random_waveforms(1))
+
+    combined = waveforms + waveforms2 + [waveform3]
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        dataset.waveforms = waveforms
+        dataset.waveforms.extend(waveforms2)
+        dataset.waveforms.append(waveform3)
+
+    with ismrmrd.File(filename) as file:
+        dataset = file['dataset']
+        for a, b in zip(combined, dataset.waveforms):
             assert a == b
 
 
