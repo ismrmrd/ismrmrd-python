@@ -18,7 +18,7 @@ class DataWrapper:
 
     def __iter__(self):
         for raw in self.data:
-            yield self.from_numpy(raw)
+                yield self.from_numpy(raw)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -65,17 +65,14 @@ class Acquisitions(DataWrapper):
 
     @classmethod
     def from_numpy(cls, raw):
-        acquisition = Acquisition(raw['head'])
-
-        acquisition.data[:] = raw['data'].view(np.complex64).reshape(
-            (acquisition.active_channels,
-             acquisition.number_of_samples)
-        )[:]
-
-        acquisition.traj[:] = raw['traj'].reshape(
-            (acquisition.number_of_samples,
-             acquisition.trajectory_dimensions)
-        )[:]
+        acquisition = Acquisition(raw['head'],raw['data'].view(np.complex64).reshape(
+            (raw['head']['active_channels'],
+             raw['head']['number_of_samples'])
+        ),
+        raw['traj'].reshape(
+            (raw['head']['number_of_samples'],
+             raw['head']['trajectory_dimensions']
+        )))
 
         return acquisition
 
@@ -378,11 +375,14 @@ class Container(Folder):
 class File(Folder):
 
     def __init__(self, filename, mode='a'):
-        self.__file = h5py.File(filename, mode)
+        self.__file = h5py.File(filename, mode,driver='stdio')
         super().__init__(self.__file)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.__file.close()
+
+    def close(self):
         self.__file.close()

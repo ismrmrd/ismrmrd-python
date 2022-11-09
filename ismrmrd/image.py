@@ -12,6 +12,7 @@ from .acquisition import Acquisition
 from .flags import FlagsMixin
 from .equality import EqualityMixin
 from .constants import *
+from . import decorators
 
 dtype_mapping = {
     DATATYPE_USHORT: np.dtype('uint16'),
@@ -125,9 +126,10 @@ class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
 
 
 # Image class
+@decorators.expose_header_fields(ImageHeader)
 class Image(FlagsMixin):
-    __readonly = ('data_type', 'matrix_size', 'channels')
-    __ignore = ('matrix_size', 'attribute_string_len')
+    _readonly = ('data_type', 'matrix_size', 'channels')
+    _ignore = ('matrix_size', 'attribute_string_len')
 
     @staticmethod
     def deserialize_from(read_exactly):
@@ -154,9 +156,9 @@ class Image(FlagsMixin):
     def serialize_into(self, write):
 
         attribute_bytes = self.attribute_string.encode('utf-8')
-        self.__head.attribute_string_len = len(attribute_bytes)
+        self._head.attribute_string_len = len(attribute_bytes)
 
-        write(self.__head)
+        write(self._head)
 
         write(ctypes.c_uint64(len(attribute_bytes)))
         write(attribute_bytes)
@@ -229,15 +231,15 @@ class Image(FlagsMixin):
         if head is None:
             if data is None:
                 data = np.empty((1, 1, 1, 0), dtype=np.complex64)
-            self.__head = create_consistent_header(ImageHeader(), data)
+            self._head = create_consistent_header(ImageHeader(), data)
         else:
-            self.__head = ImageHeader.from_buffer_copy(head)
+            self._head = ImageHeader.from_buffer_copy(head)
             if data is None:
-                data = np.empty(shape=(self.__head.channels, self.__head.matrix_size[2],
-                                              self.__head.matrix_size[1], self.__head.matrix_size[0]),
-                                       dtype=get_dtype_from_data_type(self.__head.data_type))
+                data = np.empty(shape=(self._head.channels, self._head.matrix_size[2],
+                                              self._head.matrix_size[1], self._head.matrix_size[0]),
+                                       dtype=get_dtype_from_data_type(self._head.data_type))
             else:
-                self.__head = create_consistent_header(self.__head, data)
+                self._head = create_consistent_header(self._head, data)
         self.__data = data
 
         if attribute_string is not None:
@@ -249,48 +251,14 @@ class Image(FlagsMixin):
         else:
             self.__meta = Meta()
 
-        for (field, type) in self.__head._fields_:
-            if field in self.__ignore:
-                continue
-            else:
-                try:
-                    g = '__get_' + field
-                    s = '__set_' + field
-                    setattr(Image, g, self.__getter(field))
-                    setattr(Image, s, self.__setter(field))
-                    p = property(getattr(Image, g), getattr(Image, s))
-                    setattr(Image, field, p)
-                except TypeError:
-                    # e.g. if key is an `int`, skip it
-                    pass
-
-    def __getter(self, name):
-        if name in self.__readonly:
-            def fn(self):
-                return copy.copy(self.__head.__getattribute__(name))
-        else:
-            def fn(self):
-                return self.__head.__getattribute__(name)
-        return fn
-
-    def __setter(self, name):
-        if name in self.__readonly:
-            def fn(self, val):
-                raise AttributeError(name + " is read-only.")
-        else:
-            def fn(self, val):
-                self.__head.__setattr__(name, val)
-
-        return fn
-
     def getHead(self):
-        return copy.deepcopy(self.__head)
+        return copy.deepcopy(self._head)
 
     def setHead(self, hdr):
-        self.__head = self.__head.__class__.from_buffer_copy(hdr)
-        self.setDataType(self.__head.data_type)
-        self.resize(self.__head.channels, self.__head.matrix_size[2], self.__head.matrix_size[1],
-                    self.__head.matrix_size[0])
+        self._head = self._head.__class__.from_buffer_copy(hdr)
+        self.setDataType(self._head.data_type)
+        self.resize(self._head.channels, self._head.matrix_size[2], self._head.matrix_size[1],
+                    self._head.matrix_size[0])
 
     def setDataType(self, val):
         self.__data = self.__data.astype(get_dtype_from_data_type(val))
@@ -340,18 +308,18 @@ class Image(FlagsMixin):
         return len(self.attribute_string)
 
     def __str__(self):
-        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self.__head, self.attribute_string,
+        return "Header:\n {}\nAttribute string:\n {}\nData:\n {}\n".format(self._head, self.attribute_string,
                                                                            self.__data)
 
     def __repr__(self):
-        return f"Image(head={self.__head.__repr__()},meta={self.__meta.__repr__()},data={self.__data.__repr__()})"
+        return f"Image(head={self._head.__repr__()},meta={self.__meta.__repr__()},data={self.__data.__repr__()})"
 
     def __eq__(self, other):
         if not isinstance(other, Image):
             return False
 
         return all([
-            self.__head == other.__head,
+            self._head == other._head,
             np.array_equal(self.__data, other.__data),
             np.array_equal(self.attribute_string, other.attribute_string)
         ])
