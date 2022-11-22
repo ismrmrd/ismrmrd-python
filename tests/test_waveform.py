@@ -17,8 +17,7 @@ def test_initialization_from_array():
     nchannels = 32
     nsamples = 256
 
-    data = numpy.random.randint(0, 1 << 32, size=(nchannels, nsamples))
-    data = data.astype(np.uint32)
+    data = numpy.random.randint(0, 1 << 32, size=(nchannels, nsamples),dtype=np.uint32)
 
     waveform = ismrmrd.Waveform.from_array(data)
 

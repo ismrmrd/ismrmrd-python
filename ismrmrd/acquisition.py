@@ -6,6 +6,7 @@ import io
 from .constants import *
 from .flags import FlagsMixin
 from .equality import EqualityMixin
+from . import decorators
 
 
 class EncodingCounters(EqualityMixin, ctypes.Structure):
@@ -58,7 +59,6 @@ class AcquisitionHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
                 ("idx", EncodingCounters),
                 ("user_int", ctypes.c_int32 * USER_INTS),
                 ("user_float", ctypes.c_float * USER_FLOATS)]
-
     def __str__(self):
         retstr = ''
         for field_name, field_type in self._fields_:
@@ -70,8 +70,9 @@ class AcquisitionHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
         return retstr
 
 
+@decorators.expose_header_fields(AcquisitionHeader)
 class Acquisition(FlagsMixin):
-    __readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
+    _readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
 
     @staticmethod
     def deserialize_from(read_exactly):
@@ -97,7 +98,7 @@ class Acquisition(FlagsMixin):
         return acquisition
 
     def serialize_into(self, write):
-        write(self.__head)
+        write(self._head)
         write(self.__traj.tobytes())
         write(self.__data.tobytes())
 
@@ -146,7 +147,7 @@ class Acquisition(FlagsMixin):
         def generate_header():
             if head is None:
                 if data is None:
-                    return AcquisitionHeader()
+                    return  AcquisitionHeader()
                 else:
                     nchannels, nsamples = data.shape
                     trajectory_dimensions = trajectory.shape[1] if trajectory is not None else 0
@@ -170,55 +171,26 @@ class Acquisition(FlagsMixin):
             return trajectory if trajectory is not None else np.zeros(
                 shape=(header.number_of_samples, header.trajectory_dimensions), dtype=np.float32)
 
-        self.__head = generate_header()
+        self._head = generate_header()
 
-        self.__data = generate_data_array(self.__head)
-        self.__traj = generate_trajectory_array(self.__head)
+        self.__data = generate_data_array(self._head)
+        self.__traj = generate_trajectory_array(self._head)
 
-        for (field, _) in self.__head._fields_:
-            try:
-                g = '__get_' + field
-                s = '__set_' + field
-                setattr(Acquisition, g, self.__getter(field))
-                setattr(Acquisition, s, self.__setter(field))
-                p = property(getattr(Acquisition, g), getattr(Acquisition, s))
-                setattr(Acquisition, field, p)
-            except TypeError:
-                # e.g. if key is an `int`, skip it
-                pass
 
-    def __getter(self, name):
-        if name in self.__readonly:
-            def fn(self):
-                return copy.copy(self.__head.__getattribute__(name))
-        else:
-            def fn(self):
-                return self.__head.__getattribute__(name)
-        return fn
-
-    def __setter(self, name):
-        if name in self.__readonly:
-            def fn(self, val):
-                raise AttributeError(name + " is read-only. Use resize instead.")
-        else:
-            def fn(self, val):
-                self.__head.__setattr__(name, val)
-
-        return fn
 
     def resize(self, number_of_samples=0, active_channels=1, trajectory_dimensions=0):
         self.__data = np.resize(self.__data, (active_channels, number_of_samples))
         self.__traj = np.resize(self.__traj, (number_of_samples, trajectory_dimensions))
-        self.__head.number_of_samples = number_of_samples
-        self.__head.active_channels = active_channels
-        self.__head.trajectory_dimensions = trajectory_dimensions
+        self._head.number_of_samples = number_of_samples
+        self._head.active_channels = active_channels
+        self._head.trajectory_dimensions = trajectory_dimensions
 
     def getHead(self):
-        return copy.deepcopy(self.__head)
+        return copy.deepcopy(self._head)
 
     def setHead(self, hdr):
-        self.__head = self.__head.__class__.from_buffer_copy(hdr)
-        self.resize(self.__head.number_of_samples, self.__head.active_channels, self.__head.trajectory_dimensions)
+        self._head = self._head.__class__.from_buffer_copy(hdr)
+        self.resize(self._head.number_of_samples, self._head.active_channels, self._head.trajectory_dimensions)
 
     @property
     def data(self):
@@ -230,7 +202,7 @@ class Acquisition(FlagsMixin):
 
     def __str__(self):
         retstr = ''
-        retstr += 'Header:\n %s\n' % (self.__head)
+        retstr += 'Header:\n %s\n' % (self._head)
         retstr += 'Trajectory:\n %s\n' % (self.traj)
         retstr += 'Data:\n %s\n' % (self.data)
         return retstr
@@ -240,7 +212,8 @@ class Acquisition(FlagsMixin):
             return False
 
         return all([
-            self.__head == other.__head,
+            self._head == other._head,
             np.array_equal(self.__data, other.__data),
             np.array_equal(self.__traj, other.__traj)
         ])
+

@@ -96,8 +96,7 @@ def create_random_trajectory(shape=(256, 2)):
 
 
 def create_random_waveform_data(shape=(32, 256)):
-    data = numpy.random.randint(0, 1 << 32, size=shape)
-    return data.astype(np.uint32)
+    return  numpy.random.randint(0, 1 << 32, size=shape,dtype=np.uint32)
 
 
 def create_random_acquisition(seed=42):

@@ -5,7 +5,7 @@ import io
 
 from .flags import FlagsMixin
 from .equality import EqualityMixin
-
+from . import decorators
 
 class WaveformHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 8
@@ -31,9 +31,9 @@ class WaveformHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
                 retstr += '%s: %s\n' % (field_name, var)
         return retstr
 
-
+@decorators.expose_header_fields(WaveformHeader)
 class Waveform(FlagsMixin):
-    __readonly = ('number_of_samples', 'channels')
+    _readonly = ('number_of_samples', 'channels')
 
     @staticmethod
     def deserialize_from(read_exactly):
@@ -50,7 +50,7 @@ class Waveform(FlagsMixin):
         return waveform
 
     def serialize_into(self, write):
-        write(self.__head)
+        write(self._head)
         write(self.__data.tobytes())
 
     @staticmethod
@@ -89,70 +89,39 @@ class Waveform(FlagsMixin):
 
     def __init__(self, head=None, data=None):
         if head is None:
-            self.__head = WaveformHeader()
+            self._head = WaveformHeader()
             self.__data = np.empty(shape=(1, 0), dtype=np.uint32)
         else:
-            self.__head = WaveformHeader.from_buffer_copy(head)
-            self.__data = np.empty(shape=(self.__head.channels, self.__head.number_of_samples), dtype=np.uint32)
+            self._head = WaveformHeader.from_buffer_copy(head)
+            self.__data = np.empty(shape=(self._head.channels, self._head.number_of_samples), dtype=np.uint32)
 
             if data is not None:
-                self.data[:] = data.reshape((self.__head.channels,self.__head.number_of_samples), order="C")
-
-        for (field, type) in self.__head._fields_:
-            try:
-                g = '__get_' + field
-                s = '__set_' + field
-                setattr(Waveform, g, self.__getter(field))
-                setattr(Waveform, s, self.__setter(field))
-                p = property(getattr(Waveform, g), getattr(Waveform, s))
-                setattr(Waveform, field, p)
-            except TypeError:
-                # e.g. if key is an `int`, skip it
-                pass
-
-    def __getter(self, name):
-        if name in self.__readonly:
-            def fn(self):
-                return copy.copy(self.__head.__getattribute__(name))
-        else:
-            def fn(self):
-                return self.__head.__getattribute__(name)
-        return fn
-
-    def __setter(self, name):
-        if name in self.__readonly:
-            def fn(self, val):
-                raise AttributeError(name+" is read-only. Use resize instead.")
-        else:
-            def fn(self, val):
-                self.__head.__setattr__(name, val)
-
-        return fn
+                self.data[:] = data.reshape((self._head.channels,self._head.number_of_samples), order="C")
 
     def resize(self, number_of_samples=0, channels=1):
         self.__data = np.resize(self.__data, (channels, number_of_samples))
-        self.__head.number_of_samples = number_of_samples
-        self.__head.channels = channels
+        self._head.number_of_samples = number_of_samples
+        self._head.channels = channels
 
     def getHead(self):
-        return copy.deepcopy(self.__head)
+        return copy.deepcopy(self._head)
 
     def setHead(self, hdr):
-        self.__head = self.__head.__class__.from_buffer_copy(hdr)
-        self.resize(self.__head.number_of_samples, self.__head.active_channels)
+        self._head = self._head.__class__.from_buffer_copy(hdr)
+        self.resize(self._head.number_of_samples, self._head.active_channels)
 
     @property
     def data(self):
         return self.__data.view()
 
     def __str__(self):
-        return "Header:\n {}\nData:\n {}\n".format(self.__head, self.__data)
+        return "Header:\n {}\nData:\n {}\n".format(self._head, self.__data)
 
     def __eq__(self, other):
         if not isinstance(other, Waveform):
             return False
 
         return all([
-            self.__head == other.__head,
+            self._head == other._head,
             np.array_equal(self.__data, other.__data)
         ])
