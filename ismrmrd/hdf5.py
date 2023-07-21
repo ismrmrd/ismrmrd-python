@@ -158,7 +158,13 @@ class Dataset(object):
             self.close()
         except:
             pass
-        
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     @property
     def _dataset(self):
         if self._dataset_name not in self._file:
@@ -167,7 +173,7 @@ class Dataset(object):
 
     def list(self):
         return self._dataset.keys()
-    
+
     def close(self):
         self._file.close()
 
