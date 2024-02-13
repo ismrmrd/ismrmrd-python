@@ -401,6 +401,22 @@ def test_file_can_rewrite_data_and_images():
         imageset.images = random_images(2)
         imageset.images = random_images(3)
 
+@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+def test_dataset_returns_none_when_no_acquisitions_present():
+
+    filename = os.path.join(temp_dir, "acquisitions.h5")
+    acquisitions = list(random_acquisitions(10))
+
+    with ismrmrd.Dataset(filename) as dataset:
+        assert not dataset.has_acquisitions()
+        assert dataset.acquisitions is None
+
+        dataset.acquisitions = acquisitions
+
+    with ismrmrd.Dataset(filename) as dataset:
+        assert dataset.has_acquisitions()
+        assert not (dataset.acquisitions is None)
+
 
 example_header = """<?xml version="1.0" encoding="utf-8"?>
 <ismrmrdHeader xmlns="http://www.ismrm.org/ISMRMRD" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd">
