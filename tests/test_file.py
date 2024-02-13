@@ -402,20 +402,17 @@ def test_file_can_rewrite_data_and_images():
         imageset.images = random_images(3)
 
 @nose.tools.with_setup(create_temp_dir, delete_temp_dir)
-def test_dataset_returns_none_when_no_acquisitions_present():
+def test_dataset_context_manager():
 
     filename = os.path.join(temp_dir, "acquisitions.h5")
-    acquisitions = list(random_acquisitions(10))
+    acq = random_acquisitions(1)
 
     with ismrmrd.Dataset(filename) as dataset:
-        assert not dataset.has_acquisitions()
-        assert dataset.acquisitions is None
-
-        dataset.acquisitions = acquisitions
+        dataset.append_acquisition(acq)
 
     with ismrmrd.Dataset(filename) as dataset:
-        assert dataset.has_acquisitions()
-        assert not (dataset.acquisitions is None)
+        assert dataset.number_of_acquisitions() > 0
+        assert not (dataset.read_acquisition(0) is None)
 
 
 example_header = """<?xml version="1.0" encoding="utf-8"?>
