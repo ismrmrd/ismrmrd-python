@@ -13,6 +13,8 @@ requirements:
     - numpy>=1.22.0
     - h5py>=2.3
     - nose>=1.0
+    - docformatter<=1.4
+    - xsdata>=22.2
 
   run:
     - python
