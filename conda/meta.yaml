@@ -18,10 +18,9 @@ requirements:
 
   run:
     - python
-    - xsdata>=22.2
     - numpy>=1.22.0
     - h5py>=2.3
-    - xsdata >= 22.2
+    - xsdata>=22.2
 
 test:
   source_files:
