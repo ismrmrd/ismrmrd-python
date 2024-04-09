@@ -15,7 +15,6 @@ requirements:
     - nose>=1.0
     - docformatter<=1.4
     - pip>=22.0
-    - xsdata>=22.2
 
   run:
     - python
