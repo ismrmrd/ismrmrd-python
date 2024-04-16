@@ -10,22 +10,28 @@ source:
 requirements:
   build:
     - python {{ python }}
-    - numpy>=1.22.0
-    - h5py>=2.3
-    - nose>=1.0
-    - docformatter<=1.4
-    - xsdata>=22.2,<23
+    - xsdata >=24.0
+    - setuptools
+    - wheel
+    - jinja2 >=2.11.0
+    - pip    
 
   run:
     - python
     - numpy>=1.22.0
     - h5py>=2.3
-    - xsdata>=22.2,<23
+    - xsdata>=24.0
 
 test:
+  imports:
+    - ismrmrd
   source_files:
     - tests
+  commands:
+    - pip check
+    - nosetests
   requires:
+    - pip
     - nose
 
 about:
