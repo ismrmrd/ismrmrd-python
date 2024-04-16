@@ -2,6 +2,7 @@ from .ismrmrdschema import ismrmrdHeader
 
 from xsdata.formats.dataclass.parsers import XmlParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
+from xsdata.formats.dataclass.context import XmlContext
 
 from xsdata.formats.dataclass.serializers import XmlSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
@@ -15,8 +16,8 @@ def CreateFromDocument(document):
 
 
 def ToXML(header: ismrmrdHeader , encoding='ascii'):
-    config = SerializerConfig(encoding=encoding,pretty_print=True)
-    serializer = XmlSerializer(config)
+    config = SerializerConfig(encoding=encoding,indent=' ')
+    serializer = XmlSerializer(config=config,context=XmlContext())
     return serializer.render(header,ns_map={"":"http://www.ismrm.org/ISMRMRD"})
 
 def ToDOM(header: ismrmrdHeader):
