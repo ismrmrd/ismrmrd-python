@@ -405,7 +405,8 @@ def test_file_can_rewrite_data_and_images():
 def test_dataset_context_manager():
 
     filename = os.path.join(temp_dir, "acquisitions.h5")
-    acq = random_acquisitions(1)
+    
+    acq = create_random_acquisition(1)
 
     with ismrmrd.Dataset(filename) as dataset:
         dataset.append_acquisition(acq)
