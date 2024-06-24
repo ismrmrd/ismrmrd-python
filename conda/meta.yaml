@@ -14,8 +14,8 @@ requirements:
     - setuptools
     - wheel
     - jinja2 >=2.11.0
-    - pip
-    
+    - pip    
+
   run:
     - python
     - numpy>=1.22.0
