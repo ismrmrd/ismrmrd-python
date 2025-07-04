@@ -144,12 +144,15 @@ def fileinfo(fname):
 
 
 class Dataset(object):
-    def __init__(self, filename, dataset_name="dataset", create_if_needed=True):
+    def __init__(self, filename, dataset_name="dataset", create_if_needed=True, mode=None):
         # Open the file
-        if create_if_needed:
-            self._file = h5py.File(filename, 'a')
-        else:
-            self._file = h5py.File(filename, 'r+')
+        if mode is None:
+            if create_if_needed:
+                mode = 'a'
+            else:
+                mode = 'r+'
+
+        self._file = h5py.File(filename, mode)
 
         self._dataset_name = dataset_name
 
