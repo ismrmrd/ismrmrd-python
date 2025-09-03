@@ -64,36 +64,11 @@ class GenerateSchemaCommand(Command):
         destination = os.path.join(outdir, subpackage_name)
         shutil.rmtree(destination, ignore_errors=True)
         shutil.move(subpackage_name, destination)
-
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README").read_text()
+        print(f"JOE: Moved {subpackage_name} to {destination}")
 
 setup(
-    name='ismrmrd',
     version='1.14.1',
-    author='ISMRMRD Developers',
-    description='Python implementation of the ISMRMRD',
-    license='Public Domain',
-    keywords='ismrmrd',
-    url='https://ismrmrd.github.io',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
     packages=find_packages(),
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Science/Research',
-        'License :: Public Domain',
-        'Operating System :: OS Independent',
-        'Topic :: Scientific/Engineering :: Medical Science Apps.'
-    ],
-    install_requires=[
-        'xsdata>=22.12',
-        'numpy>=1.22.0',
-        'h5py>=2.3'
-    ],
-    extras_require={
-        'dev': ['pytest']
-    },
     cmdclass={
         'generate_schema': GenerateSchemaCommand
     }
