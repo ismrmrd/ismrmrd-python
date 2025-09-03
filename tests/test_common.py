@@ -6,15 +6,6 @@ import numpy.random
 import random
 
 
-# def random.random():
-#     return numpy.random.rand(1).astype(np.float32)
-
-
-# def seed_random_generators(seed=42):
-#     numpy.random.seed(seed)
-#     random.seed(seed)
-
-
 def random_tuple(size, random_fn):
     return tuple([random_fn() for _ in range(0, size)])
 

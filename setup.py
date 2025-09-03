@@ -25,7 +25,7 @@ class GenerateSchemaCommand(Command):
         pass
 
     def finalize_options(self):
-        # # Set build_lib for non-editable installs
+        # Set build_lib for non-editable installs
         self.set_undefined_options("build_py", ("build_lib", "build_lib"))
 
     def run(self):
@@ -64,7 +64,6 @@ class GenerateSchemaCommand(Command):
         destination = os.path.join(outdir, subpackage_name)
         shutil.rmtree(destination, ignore_errors=True)
         shutil.move(subpackage_name, destination)
-        print(f"JOE: Moved {subpackage_name} to {destination}")
 
 setup(
     version='1.14.1',
