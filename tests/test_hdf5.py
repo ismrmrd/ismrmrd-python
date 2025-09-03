@@ -1,8 +1,5 @@
-
-
 import ismrmrd
-
-import nose.tools
+import pytest
 
 import random
 import numpy.random
@@ -16,24 +13,19 @@ import tempfile
 from test_common import *
 
 
-temp_dir = None
-
-
-def create_temp_dir():
+@pytest.fixture(autouse=True)
+def temp_dir_fixture():
     global temp_dir
     temp_dir = tempfile.mkdtemp(prefix='ismrmrd-python-', suffix='-test')
-
-
-def delete_temp_dir():
+    yield
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_open_fresh_hdf5():
     filename = os.path.join(temp_dir, 'open_fresh.h5')
     ismrmrd.Dataset(filename)
 
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
+
 def test_hdf5_fileinfo():
     filename = os.path.join(temp_dir, 'stuff.h5')
 
@@ -43,10 +35,9 @@ def test_hdf5_fileinfo():
     other_dataset = ismrmrd.Dataset(filename, 'other_dataset')
     other_dataset.append_acquisition(create_random_acquisition())
 
-    assert(ismrmrd.hdf5.fileinfo(filename) == ['dataset', 'other_dataset'])
+    assert ismrmrd.hdf5.fileinfo(filename) == ['dataset', 'other_dataset']
 
 
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_read_and_write_acquisitions_to_hdf5():
     filename = os.path.join(temp_dir, 'read_write_acquisitions.h5')
 
@@ -64,10 +55,10 @@ def test_read_and_write_acquisitions_to_hdf5():
 
     read_acquisitions = [dataset.read_acquisition(i) for i in range(0, nacquisitions)]
 
-    map(lambda acq_a, acq_b: compare_acquisitions(acq_a, acq_b), acquisitions, read_acquisitions)
+    for acq_a, acq_b in zip(acquisitions, read_acquisitions):
+        compare_acquisitions(acq_a, acq_b)
 
 
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_read_and_write_images_to_hdf5():
     filename = os.path.join(temp_dir, 'read_write_images.h5')
 
@@ -85,10 +76,10 @@ def test_read_and_write_images_to_hdf5():
 
     read_images = [dataset.read_image('images', i) for i in range(0, nimages)]
 
-    map(lambda img_a, img_b: compare_images(img_a, img_b), images, read_images)
+    for img_a, img_b in zip(images, read_images):
+        compare_images(img_a, img_b)
 
 
-@nose.tools.with_setup(create_temp_dir, delete_temp_dir)
 def test_read_and_write_waveforms_to_hdf5():
     filename = os.path.join(temp_dir, 'read_write_waveforms.h5')
 
@@ -106,7 +97,9 @@ def test_read_and_write_waveforms_to_hdf5():
 
     read_waveforms = [dataset.read_waveform(i) for i in range(0, nwaveforms)]
 
-    map(lambda wav_a, wav_b: compare_waveforms(wav_a, wav_b), waveforms, read_waveforms)
+    for wav_a, wav_b in zip(waveforms, read_waveforms):
+        compare_waveforms(wav_a, wav_b)
+
 
 def test_waveform_hdf5_size():
     assert ismrmrd.hdf5.waveform_header_dtype.itemsize == 40

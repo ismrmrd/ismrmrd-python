@@ -2,6 +2,4 @@
 
 set -euo pipefail
 
-cd tests
-nosetests
-
+pytest

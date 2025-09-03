@@ -10,12 +10,10 @@ source:
 requirements:
   build:
     - python {{ python }}
-    - xsdata >=24.0
+    - xsdata>=24.0
     - setuptools
-    - wheel
-    - jinja2 >=2.11.0
     - pip
-    
+
   run:
     - python
     - numpy>=1.22.0
@@ -29,10 +27,10 @@ test:
     - tests
   commands:
     - pip check
-    - nosetests
+    - pytest
   requires:
     - pip
-    - nose
+    - pytest
 
 about:
   home: https://github.com/ismrmrd/ismrmrd-python

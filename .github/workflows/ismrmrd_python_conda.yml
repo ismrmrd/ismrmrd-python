@@ -1,10 +1,10 @@
 on:
+  push:
+    branches: [master]
+    tags: ["v*.*.*"]
   pull_request:
-    branches:    
-      - master
-  release:
-    types:
-      - created
+    branches: [master]
+  workflow_dispatch:
 
 jobs:
   build-conda-packages:
@@ -13,12 +13,13 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-      - uses: conda-incubator/setup-miniconda@e81abac10ce2c37423b54eae5af93aa3b4d3475c
+      - uses: actions/checkout@v5
+      - uses: conda-incubator/setup-miniconda@v3
         with:
+          miniforge-version: latest
           activate-environment: ismrmrd-python-build
           environment-file: conda/environment.yml
-          python-version: 3.9
+          python-version: 3.12
           auto-activate-base: false
       - name: Build conda package
         shell: bash -l {0}

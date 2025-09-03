@@ -1,56 +1,49 @@
 import ismrmrd
 import ctypes
 import numpy as np
-
 import io
-import nose.tools
-
-from nose.tools import eq_
+import pytest
 
 import test_common as common
 
 
 def test_encoding_counters():
     idx = ismrmrd.EncodingCounters()
-    eq_(ctypes.sizeof(idx), 34)
+    assert ctypes.sizeof(idx) == 34
 
 
 def test_header():
     head = ismrmrd.AcquisitionHeader()
-    eq_(ctypes.sizeof(head), 340)
+    assert ctypes.sizeof(head) == 340
 
 
 def test_new_instance():
     acq = ismrmrd.Acquisition()
-    eq_(type(acq.getHead()), ismrmrd.AcquisitionHeader)
-    eq_(type(acq.data), np.ndarray)
-    eq_(acq.data.dtype, np.complex64)
-    eq_(type(acq.traj), np.ndarray)
-    eq_(acq.traj.dtype, np.float32)
+    assert type(acq.getHead()) == ismrmrd.AcquisitionHeader
+    assert type(acq.data) == np.ndarray
+    assert acq.data.dtype == np.complex64
+    assert type(acq.traj) == np.ndarray
+    assert acq.traj.dtype == np.float32
 
 
 def test_read_only_fields():
     acq = ismrmrd.Acquisition()
 
     for field in ['number_of_samples', 'active_channels', 'trajectory_dimensions']:
-        try:
+        with pytest.raises(AttributeError):
             setattr(acq, field, None)
-        except AttributeError:
-            pass
-        else:
-            assert False, "assigned to read-only field of Acquisition"
 
 
 def test_resize():
     acq = ismrmrd.Acquisition()
     nsamples, nchannels, ntrajdims = 128, 8, 3
     acq.resize(nsamples, nchannels, ntrajdims)
-    eq_(acq.data.shape, (nchannels, nsamples))
-    eq_(acq.traj.shape, (nsamples, ntrajdims))
+    assert acq.data.shape == (nchannels, nsamples)
+    assert acq.traj.shape == (nsamples, ntrajdims)
     head = acq.getHead()
-    eq_(head.number_of_samples, nsamples)
-    eq_(head.active_channels, nchannels)
-    eq_(head.trajectory_dimensions, ntrajdims)
+    assert head.number_of_samples == nsamples
+    assert head.active_channels == nchannels
+    assert head.trajectory_dimensions == ntrajdims
 
 
 def test_set_head():
@@ -63,28 +56,25 @@ def test_set_head():
 
     acq.setHead(head)
 
-    eq_(acq.data.shape, (nchannels, nsamples))
-    eq_(acq.traj.shape, (nsamples, ntrajdims))
+    assert acq.data.shape == (nchannels, nsamples)
+    assert acq.traj.shape == (nsamples, ntrajdims)
 
 
 def test_flags():
     acq = ismrmrd.Acquisition()
 
     for i in range(1, 65):
-        assert not acq.is_flag_set(i), \
-            "Expected flag {} to not be set.".format(i)
+        assert not acq.is_flag_set(i)
 
     for i in range(1, 65):
         acq.set_flag(i)
-        assert acq.is_flag_set(i), \
-            "Expected flag {} to be set.".format(i)
+        assert acq.is_flag_set(i)
 
     for i in range(1, 65):
         acq.clear_flag(i)
-        assert not acq.is_flag_set(i), \
-            "Expected flag {} to not be set.".format(i)
+        assert not acq.is_flag_set(i)
 
-    eq_(acq.flags, 0)
+    assert acq.flags == 0
 
     for i in range(1, 65):
         acq.set_flag(i)
@@ -92,8 +82,7 @@ def test_flags():
     acq.clear_all_flags()
 
     for i in range(1, 65):
-        assert not acq.is_flag_set(i), \
-            "Expected flag {} to not be set.".format(i)
+        assert not acq.is_flag_set(i)
 
 
 def test_clearing_unset_flag_does_not_set_other_flags():
@@ -108,7 +97,6 @@ def test_clearing_unset_flag_does_not_set_other_flags():
         "Clearing an unset flag sets other flags."
 
 
-@nose.tools.with_setup()
 def test_acquisition_equality_test_header_field():
     a = common.create_random_acquisition(42)
     b = common.create_random_acquisition(42)
@@ -120,7 +108,6 @@ def test_acquisition_equality_test_header_field():
     assert a != b
 
 
-@nose.tools.with_setup()
 def test_acquisition_equality_test_header_array():
     a = common.create_random_acquisition(42)
     b = common.create_random_acquisition(42)
@@ -132,22 +119,17 @@ def test_acquisition_equality_test_header_array():
     assert a != b
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_from_array():
-
     nchannels = 32
     nsamples = 256
 
     data = common.create_random_data((nchannels, nsamples))
     acquisition = ismrmrd.Acquisition.from_array(data)
 
-    assert np.array_equal(acquisition.data, data), \
-        "Acquisition data does not match data used to initialize acquisition."
+    assert np.array_equal(acquisition.data, data)
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_from_arrays():
-
     nchannels = 32
     nsamples = 256
     trajectory_dimensions = 2
@@ -157,25 +139,18 @@ def test_initialization_from_arrays():
 
     acquisition = ismrmrd.Acquisition.from_array(data, trajectory)
 
-    assert np.array_equal(acquisition.data, data), \
-        "Acquisition data does not match data used to initialize acquisition."
-
-    assert np.array_equal(acquisition.traj, trajectory), \
-        "Acquisition trajectory does not match trajectory used to initialize acquisition."
+    assert np.array_equal(acquisition.data, data)
+    assert np.array_equal(acquisition.traj, trajectory)
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_sets_nonzero_version():
-
     acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
     assert acquisition.version != 0, \
         "Default acquisition version should not be zero."
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_with_header_fields():
-
     fields = {
         'version': 2,
         'measurement_uid':  123456789,
@@ -192,14 +167,12 @@ def test_initialization_with_header_fields():
                                                                        getattr(acquisition, field))
 
 
-@nose.tools.raises(TypeError)
 def test_initialization_with_illegal_header_value():
-    ismrmrd.Acquisition.from_array(common.create_random_data(), version='Bad version')
+    with pytest.raises(TypeError):
+        ismrmrd.Acquisition.from_array(common.create_random_data(), version='Bad version')
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialize_and_deserialize():
-
     acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
     with io.BytesIO() as stream:
@@ -213,9 +186,7 @@ def test_serialize_and_deserialize():
         assert acquisition == deserialized_acquisition
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_to_and_from_bytes():
-
     acquisition = ismrmrd.Acquisition.from_array(common.create_random_data())
 
     deserialized_acquisition = ismrmrd.Acquisition.from_bytes(acquisition.to_bytes())
@@ -223,9 +194,7 @@ def test_to_and_from_bytes():
     assert acquisition == deserialized_acquisition
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialization_with_header_fields():
-
     properties = common.create_random_acquisition_properties()
     data = common.create_random_data()
     trajectory = common.create_random_trajectory()
@@ -236,8 +205,6 @@ def test_serialization_with_header_fields():
     assert acquisition == deserialized_acquisition
 
 
-@nose.tools.raises(ValueError)
 def test_deserialization_from_too_few_bytes():
-    ismrmrd.Acquisition.from_bytes(b'')
-
-
+    with pytest.raises(ValueError):
+        ismrmrd.Acquisition.from_bytes(b'')
