@@ -1,12 +1,14 @@
 """
-serialization.py
-
 Implements ProtocolSerializer and ProtocolDeserializer for streaming ISMRMRD objects (Acquisition, Image, Waveform, etc.)
 """
 import struct
+import typing
+import numpy as np
+
 from ismrmrd.acquisition import Acquisition
-from ismrmrd.image import Image
+from ismrmrd.image import Image, get_data_type_from_dtype, get_dtype_from_data_type
 from ismrmrd.waveform import Waveform
+from ismrmrd.xsd import ismrmrdHeader, CreateFromDocument
 
 from enum import IntEnum
 
@@ -29,145 +31,66 @@ class ProtocolSerializer:
     def __init__(self, stream):
         self.stream = stream
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type: typing.Optional[type[BaseException]], exc: typing.Optional[BaseException], traceback: object) -> None:
+        try:
+            self.close()
+        except Exception as e:
+            if exc is None:
+                raise e
+
+    def close(self):
+        self._write_message_id(ISMRMRDMessageID.CLOSE)
+        self.stream.flush()
+
+    def _write_message_id(self, msgid):
+        self.stream.write(struct.pack('<H', msgid))
+
     def serialize(self, obj):
         """
         Serializes an ISMRMRD object and writes to the configured stream.
         """
         if isinstance(obj, Acquisition):
-            msg_id = struct.pack('<H', ISMRMRDMessageID.ACQUISITION)
-            self.stream.write(msg_id)
+            self._write_message_id(ISMRMRDMessageID.ACQUISITION)
             obj.serialize_into(self.stream.write)
         elif isinstance(obj, Image):
-            self._serialize_image(obj)
+            self._write_message_id(ISMRMRDMessageID.IMAGE)
+            obj.serialize_into(self.stream.write)
         elif isinstance(obj, Waveform):
-            self._serialize_waveform(obj)
+            self._write_message_id(ISMRMRDMessageID.WAVEFORM)
+            obj.serialize_into(self.stream.write)
+        elif isinstance(obj, ismrmrdHeader):
+            self._write_message_id(ISMRMRDMessageID.HEADER)
+            self._serialize_ismrmrd_header(obj)
+        elif isinstance(obj, np.ndarray):
+            self._write_message_id(ISMRMRDMessageID.NDARRAY)
+            self._serialize_ndarray(obj)
+        elif isinstance(obj, str):
+            self._write_message_id(ISMRMRDMessageID.TEXT)
+            self._serialize_text(obj)
         else:
             raise TypeError(f"Unsupported type: {type(obj)}")
 
-    def _serialize_acquisition(self, acq):
-        # 1. Prefix with MessageID (uint16_t)
-        msg_id = struct.pack('<H', ISMRMRDMessageID.ACQUISITION)
-        self.stream.write(msg_id)
+    def _serialize_ismrmrd_header(self, header):
+        xml_bytes = header.toXML().encode('utf-8')
+        self.stream.write(struct.pack('<I', len(xml_bytes)))
+        self.stream.write(xml_bytes)
 
-        # 2. Serialize AcquisitionHeader
-        header_fmt = '<H Q I I I 3I H H H 16Q H H H H H f 3f 3f 3f 3f 3f 8H 8H 8f'
-        idx = acq.idx
-        header = struct.pack(
-            header_fmt,
-            acq.version,
-            acq.flags,
-            acq.measurement_uid,
-            acq.scan_counter,
-            acq.acquisition_time_stamp,
-            *acq.physiology_time_stamp,
-            acq.number_of_samples,
-            acq.available_channels,
-            acq.active_channels,
-            *acq.channel_mask,
-            acq.discard_pre,
-            acq.discard_post,
-            acq.center_sample,
-            acq.encoding_space_ref,
-            acq.trajectory_dimensions,
-            acq.sample_time_us,
-            *acq.position,
-            *acq.read_dir,
-            *acq.phase_dir,
-            *acq.slice_dir,
-            *acq.patient_table_position,
-            idx.kspace_encode_step_1,
-            idx.kspace_encode_step_2,
-            idx.average,
-            idx.slice,
-            idx.contrast,
-            idx.phase,
-            idx.repetition,
-            idx.set,
-            idx.segment,
-            *idx.user,
-            *acq.user_int,
-            *acq.user_float
-        )
-        self.stream.write(header)
+    def _serialize_ndarray(self, arr):
+        ver = 0
+        dtype = get_data_type_from_dtype(arr.dtype)
+        ndim = arr.ndim
+        dims = arr.shape
+        self.stream.write(struct.pack('<H H H', dtype, ver, ndim))
+        self.stream.write(struct.pack('<' + 'Q' * ndim, *dims))
+        self.stream.write(arr.tobytes())
 
-        # 3. Trajectory array (float32)
-        if acq.trajectory is not None:
-            trajectory = acq.trajectory.astype('float32').tobytes()
-            self.stream.write(trajectory)
-
-        # 4. K-space line array (complex float32)
-        kspace = acq.data.astype('complex64').tobytes()
-        self.stream.write(kspace)
-
-    def _serialize_image(self, img):
-        # 1. Prefix with MessageID (uint16_t)
-        msg_id = struct.pack('<H', ISMRMRDMessageID.IMAGE)
-        self.stream.write(msg_id)
-
-        # 2. Serialize ImageHeader (field order from image.py)
-        header_fmt = '<H H Q I 3H 3f H 3f 3f 3f 3f H H H H H I 3I H H H 8i 8f I'
-        header = struct.pack(
-            header_fmt,
-            img.header.version,
-            img.header.data_type,
-            img.header.flags,
-            img.header.measurement_uid,
-            *img.header.matrix_size,
-            *img.header.field_of_view,
-            img.header.channels,
-            *img.header.position,
-            *img.header.read_dir,
-            *img.header.phase_dir,
-            *img.header.slice_dir,
-            *img.header.patient_table_position,
-            img.header.average,
-            img.header.slice,
-            img.header.contrast,
-            img.header.phase,
-            img.header.repetition,
-            img.header.set,
-            img.header.acquisition_time_stamp,
-            *img.header.physiology_time_stamp,
-            img.header.image_type,
-            img.header.image_index,
-            img.header.image_series_index,
-            *img.header.user_int,
-            *img.header.user_float,
-            img.header.attribute_string_len
-        )
-        self.stream.write(header)
-
-        # 3. Image attribute string (length-prefixed)
-        attr_bytes = img.attribute_string.encode('utf-8')
-        self.stream.write(attr_bytes)
-
-        # 4. Image data
-        self.stream.write(img.data.tobytes())
-
-    def _serialize_waveform(self, wf):
-        # 1. Prefix with MessageID (uint16_t)
-        msg_id = struct.pack('<H', ISMRMRDMessageID.WAVEFORM)
-        self.stream.write(msg_id)
-
-        # 2. Serialize WaveformHeader (from waveform.h)
-        header_fmt = '<H Q I I I H H f H'
-        head = wf.getHead()
-        header = struct.pack(
-            header_fmt,
-            head.version,
-            head.flags,
-            head.measurement_uid,
-            head.scan_counter,
-            head.time_stamp,
-            head.number_of_samples,
-            head.channels,
-            head.sample_time_us,
-            head.waveform_id
-        )
-        self.stream.write(header)
-
-        # 3. Waveform array (float32, shape: channels x number_of_samples)
-        self.stream.write(wf.data.astype('float32').tobytes())
+    def _serialize_text(self, text):
+        text_bytes = text.encode('utf-8')
+        self.stream.write(struct.pack('<I', len(text_bytes)))
+        self.stream.write(text_bytes)
 
 class ProtocolDeserializer:
     """
@@ -178,167 +101,67 @@ class ProtocolDeserializer:
 
     def deserialize(self):
         """
-        Reads from the configured stream and deserializes the next ISMRMRD object.
+        Reads from the stream, emitting each ISMRMRD item as a generator.
         """
-        msg_id_bytes = self.stream.read(2)
-        if not msg_id_bytes or len(msg_id_bytes) < 2:
-            raise EOFError("End of stream or incomplete message ID")
-        msg_id = struct.unpack('<H', msg_id_bytes)[0]
-        if msg_id == ISMRMRDMessageID.ACQUISITION:
-            return Acquisition.deserialize_from(self.stream.read)
-        elif msg_id == ISMRMRDMessageID.IMAGE:
-            return self._deserialize_image()
-        elif msg_id == ISMRMRDMessageID.WAVEFORM:
-            return self._deserialize_waveform()
-        else:
-            raise ValueError(f"Unknown MessageID: {msg_id}")
+        while True:
+            msg_id_bytes = self.stream.read(2)
+            if not msg_id_bytes or len(msg_id_bytes) < 2:
+                raise EOFError("End of stream or incomplete message ID")
+            msg_id = struct.unpack('<H', msg_id_bytes)[0]
+            if msg_id == ISMRMRDMessageID.ACQUISITION:
+                yield Acquisition.deserialize_from(self.stream.read)
+            elif msg_id == ISMRMRDMessageID.IMAGE:
+                yield Image.deserialize_from(self.stream.read)
+            elif msg_id == ISMRMRDMessageID.WAVEFORM:
+                yield Waveform.deserialize_from(self.stream.read)
+            elif msg_id == ISMRMRDMessageID.HEADER:
+                yield self._deserialize_ismrmrd_header()
+            elif msg_id == ISMRMRDMessageID.NDARRAY:
+                yield self._deserialize_ndarray()
+            elif msg_id == ISMRMRDMessageID.TEXT:
+                yield self._deserialize_text()
+            elif msg_id == ISMRMRDMessageID.CLOSE:
+                return
+            else:
+                raise ValueError(f"Unknown MessageID: {msg_id}")
 
-    def _deserialize_acquisition(self):
-        # Read and unpack AcquisitionHeader
-        header_fmt = '<H Q I I I 3I H H H 16Q H H H H H f 3f 3f 3f 3f 3f 8H 8H 8f'
+    def _deserialize_ismrmrd_header(self):
+        length_bytes = self.stream.read(4)
+        length = struct.unpack('<I', length_bytes)[0]
+        header_bytes = self.stream.read(length)
+        if len(header_bytes) < length:
+            raise EOFError("Incomplete ISMRMRD header")
+        return CreateFromDocument(header_bytes)
+
+    def _deserialize_ndarray(self):
+        header_fmt = '<H H H'
         header_size = struct.calcsize(header_fmt)
         header_bytes = self.stream.read(header_size)
         if len(header_bytes) < header_size:
-            raise EOFError("Incomplete AcquisitionHeader")
-        unpacked = struct.unpack(header_fmt, header_bytes)
-        # Map unpacked fields to Acquisition and idx
-        acq = Acquisition()
-        acq.version = unpacked[0]
-        acq.flags = unpacked[1]
-        acq.measurement_uid = unpacked[2]
-        acq.scan_counter = unpacked[3]
-        acq.acquisition_time_stamp = unpacked[4]
-        acq.physiology_time_stamp = list(unpacked[5:8])
-        acq.number_of_samples = unpacked[8]
-        acq.available_channels = unpacked[9]
-        acq.active_channels = unpacked[10]
-        acq.channel_mask = list(unpacked[11:27])
-        acq.discard_pre = unpacked[27]
-        acq.discard_post = unpacked[28]
-        acq.center_sample = unpacked[29]
-        acq.encoding_space_ref = unpacked[30]
-        acq.trajectory_dimensions = unpacked[31]
-        acq.sample_time_us = unpacked[32]
-        acq.position = list(unpacked[33:36])
-        acq.read_dir = list(unpacked[36:39])
-        acq.phase_dir = list(unpacked[39:42])
-        acq.slice_dir = list(unpacked[42:45])
-        acq.patient_table_position = list(unpacked[45:48])
-        # EncodingCounters
-        from ismrmrd.acquisition import EncodingCounters
-        idx = EncodingCounters()
-        idx.kspace_encode_step_1 = unpacked[48]
-        idx.kspace_encode_step_2 = unpacked[49]
-        idx.average = unpacked[50]
-        idx.slice = unpacked[51]
-        idx.contrast = unpacked[52]
-        idx.phase = unpacked[53]
-        idx.repetition = unpacked[54]
-        idx.set = unpacked[55]
-        idx.segment = unpacked[56]
-        idx.user = list(unpacked[57:65])
-        acq.idx = idx
-        acq.user_int = list(unpacked[65:73])
-        acq.user_float = list(unpacked[73:81])
+            raise EOFError("Incomplete NDArray header")
+        data_type, ver, ndim = struct.unpack(header_fmt, header_bytes)
 
-        # Trajectory array
-        if acq.trajectory_dimensions > 0:
-            traj_size = acq.trajectory_dimensions * acq.number_of_samples * 4
-            traj_bytes = self.stream.read(traj_size)
-            import numpy as np
-            acq.trajectory = np.frombuffer(traj_bytes, dtype='float32').reshape((acq.number_of_samples, acq.trajectory_dimensions))
-        else:
-            acq.trajectory = None
+        dims = []
+        for _ in range(ndim):
+            dim_bytes = self.stream.read(8)
+            if len(dim_bytes) < 8:
+                raise EOFError("Incomplete NDArray dimensions")
+            dims.append(struct.unpack('<Q', dim_bytes)[0])
 
-        # K-space line array
-        kspace_size = acq.active_channels * acq.number_of_samples * 8
-        kspace_bytes = self.stream.read(kspace_size)
-        import numpy as np
-        acq.data = np.frombuffer(kspace_bytes, dtype='complex64').reshape((acq.active_channels, acq.number_of_samples))
+        nentries = np.prod(dims)
+        dtype = get_dtype_from_data_type(data_type)
+        nbytes = nentries * dtype.itemsize
+        data_bytes = self.stream.read(nbytes)
+        if len(data_bytes) < nbytes:
+            raise EOFError("Incomplete NDArray data")
 
-        return acq
+        arr = np.frombuffer(data_bytes, dtype=dtype).reshape(dims)
+        return arr
 
-    def _deserialize_image(self):
-        # 1. Read ImageHeader
-        header_fmt = '<H H Q I 3H 3f H 3f 3f 3f 3f H H H H H I 3I H H H 8i 8f I'
-        header_size = struct.calcsize(header_fmt)
-        header_bytes = self.stream.read(header_size)
-        if len(header_bytes) < header_size:
-            raise EOFError("Incomplete ImageHeader")
-        unpacked = struct.unpack(header_fmt, header_bytes)
-        img = Image()
-        img.header = type('ImageHeader', (), {})()
-        img.header.version = unpacked[0]
-        img.header.data_type = unpacked[1]
-        img.header.flags = unpacked[2]
-        img.header.measurement_uid = unpacked[3]
-        img.header.matrix_size = list(unpacked[4:7])
-        img.header.field_of_view = list(unpacked[7:10])
-        img.header.channels = unpacked[10]
-        img.header.position = list(unpacked[11:14])
-        img.header.read_dir = list(unpacked[14:17])
-        img.header.phase_dir = list(unpacked[17:20])
-        img.header.slice_dir = list(unpacked[20:23])
-        img.header.patient_table_position = list(unpacked[23:26])
-        img.header.average = unpacked[26]
-        img.header.slice = unpacked[27]
-        img.header.contrast = unpacked[28]
-        img.header.phase = unpacked[29]
-        img.header.repetition = unpacked[30]
-        img.header.set = unpacked[31]
-        img.header.acquisition_time_stamp = unpacked[32]
-        img.header.physiology_time_stamp = list(unpacked[33:36])
-        img.header.image_type = unpacked[36]
-        img.header.image_index = unpacked[37]
-        img.header.image_series_index = unpacked[38]
-        img.header.user_int = list(unpacked[39:47])
-        img.header.user_float = list(unpacked[47:55])
-        img.header.attribute_string_len = unpacked[55]
-        # 2. Read image attribute string
-        attr_len = img.header.attribute_string_len
-        attr_bytes = self.stream.read(attr_len)
-        img.attribute_string = attr_bytes.decode('utf-8')
-        # 3. Read image data
-        import numpy as np
-        shape = (img.header.channels, img.header.matrix_size[2], img.header.matrix_size[1], img.header.matrix_size[0])
-        num_elements = np.prod(shape)
-        dtype_map = {
-            1: np.uint16,  # USHORT
-            2: np.int16,   # SHORT
-            3: np.uint32,  # UINT
-            4: np.int32,   # INT
-            5: np.float32, # FLOAT
-            6: np.float64, # DOUBLE
-            7: np.complex64, # CXFLOAT
-            8: np.complex128 # CXDOUBLE
-        }
-        dtype = dtype_map.get(img.header.data_type, np.float32)
-        data_bytes = self.stream.read(int(num_elements * np.dtype(dtype).itemsize))
-        img.data = np.frombuffer(data_bytes, dtype=dtype).reshape(shape)
-        return img
-
-    def _deserialize_waveform(self):
-        # 1. Read WaveformHeader
-        header_fmt = '<H Q I I I H H f H'
-        header_size = struct.calcsize(header_fmt)
-        header_bytes = self.stream.read(header_size)
-        if len(header_bytes) < header_size:
-            raise EOFError("Incomplete WaveformHeader")
-        unpacked = struct.unpack(header_fmt, header_bytes)
-        wf = Waveform()
-        wf.header = type('WaveformHeader', (), {})()
-        wf.header.version = unpacked[0]
-        wf.header.flags = unpacked[1]
-        wf.header.measurement_uid = unpacked[2]
-        wf.header.scan_counter = unpacked[3]
-        wf.header.time_stamp = unpacked[4]
-        wf.header.number_of_samples = unpacked[5]
-        wf.header.channels = unpacked[6]
-        wf.header.sample_time_us = unpacked[7]
-        wf.header.waveform_id = unpacked[8]
-        # 2. Read waveform array
-        arr_size = wf.header.number_of_samples * wf.header.channels * 4
-        import numpy as np
-        arr_bytes = self.stream.read(arr_size)
-        wf.data = np.frombuffer(arr_bytes, dtype='float32').reshape((wf.header.channels, wf.header.number_of_samples))
-        return wf
+    def _deserialize_text(self):
+        length_bytes = self.stream.read(4)
+        length = struct.unpack('<I', length_bytes)[0]
+        text_bytes = self.stream.read(length)
+        if len(text_bytes) < length:
+            raise EOFError("Incomplete ISMRMRD header")
+        return str(text_bytes, 'utf-8')
