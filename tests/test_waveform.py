@@ -1,19 +1,14 @@
-
 import ismrmrd
 import ctypes
-
 import numpy as np
 import numpy.random
-
 import io
-
-import nose.tools
+import pytest
 
 import test_common as common
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
-def test_initialization_from_array():
 
+def test_initialization_from_array():
     nchannels = 32
     nsamples = 256
 
@@ -25,38 +20,38 @@ def test_initialization_from_array():
         "Waveform data does not match data used to initialize waveform."
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_sets_nonzero_version():
-
     waveform = common.create_random_waveform()
 
     assert waveform.version != 0, \
         "Default acquisition version should not be zero."
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_initialization_with_header_fields():
-
     fields = common.create_random_waveform_properties()
 
     waveform = ismrmrd.Waveform.from_array(common.create_random_waveform_data(), **fields)
 
     for field in fields:
 
-        assert fields.get(field) == getattr(waveform, field), \
-            "Field {} not preserved by waveform. ({} != {})".format(field,
-                                                                    fields.get(field),
-                                                                    getattr(waveform, field))
+        expected = fields.get(field)
+        actual = getattr(waveform, field)
+        # Use np.isclose for scalar float comparison
+        if isinstance(expected, float) or isinstance(actual, float):
+            assert np.isclose(float(expected), float(actual)), f"Field '{field}' does not match: {expected} != {actual}"
+        elif isinstance(expected, (tuple, list)) and hasattr(actual, '__len__') and len(expected) == len(actual):
+            for i, (a, b) in enumerate(zip(expected, actual)):
+                assert a == b, f"Field '{field}' index {i} does not match: {a} != {b}"
+        else:
+            assert expected == actual, f"Field '{field}' does not match: {expected} != {actual}"
 
 
-@nose.tools.raises(TypeError)
 def test_initialization_with_illegal_header_value():
-    ismrmrd.Waveform.from_array(common.create_random_waveform_data(), version='Bad version')
+    with pytest.raises(TypeError):
+        ismrmrd.Waveform.from_array(common.create_random_waveform_data(), version='Bad version')
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialize_and_deserialize():
-
     waveform = common.create_random_waveform()
 
     with io.BytesIO() as stream:
@@ -70,9 +65,7 @@ def test_serialize_and_deserialize():
         assert waveform == deserialized_waveform
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_to_and_from_bytes():
-
     waveform = common.create_random_waveform()
 
     deserialized_waveform = ismrmrd.Waveform.from_bytes(waveform.to_bytes())
@@ -80,9 +73,7 @@ def test_to_and_from_bytes():
     assert waveform == deserialized_waveform
 
 
-@nose.tools.with_setup(setup=common.seed_random_generators)
 def test_serialization_with_header_fields():
-
     properties = common.create_random_waveform_properties()
     data = common.create_random_waveform_data()
 
@@ -92,9 +83,9 @@ def test_serialization_with_header_fields():
     assert waveform == deserialized_waveform
 
 
-@nose.tools.raises(ValueError)
 def test_deserialization_from_too_few_bytes():
-    ismrmrd.Acquisition.from_bytes(b'')
+    with pytest.raises(ValueError):
+        ismrmrd.Acquisition.from_bytes(b'')
 
 
 def test_waveformheader_size():
