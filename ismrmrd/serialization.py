@@ -32,11 +32,6 @@ class ProtocolSerializer:
     Serializes ISMRMRD objects to a binary stream.
     """
 
-    def close(self) -> None:
-        self.flush()
-        if self._owns_stream:
-            self._stream.close()
-
     def __init__(self, stream: Union[BinaryIO, str]) -> None:
         if isinstance(stream, str):
             self._stream = cast(BinaryIO, open(stream, "wb"))
