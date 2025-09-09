@@ -66,7 +66,7 @@ class GenerateSchemaCommand(Command):
         shutil.move(subpackage_name, destination)
 
 setup(
-    version='1.14.1',
+    version='1.14.2',
     packages=find_packages(),
     cmdclass={
         'generate_schema': GenerateSchemaCommand
