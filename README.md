@@ -1,1 +1,1 @@
-Python implementation of the ISMRMRD
+Python implementation of [ISMRMRD](https://github.com/ismrmrd/ismrmrd)

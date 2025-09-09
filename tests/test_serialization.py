@@ -110,9 +110,12 @@ def test_acquisition_serialization():
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
     serializer.serialize(acq)
+    serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
-    acq2 = deserializer.deserialize()
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    acq2 = objects[0]
     assert np.allclose(acq.data, acq2.data)
     assert np.allclose(acq.traj, acq2.traj)
     assert acq.number_of_samples == acq2.number_of_samples
@@ -125,9 +128,12 @@ def test_image_serialization():
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
     serializer.serialize(img)
+    serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
-    img2 = deserializer.deserialize()
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    img2 = objects[0]
     assert np.allclose(img.data, img2.data)
     assert img.matrix_size == img2.matrix_size
     assert img.channels == img2.channels
@@ -139,9 +145,12 @@ def test_waveform_serialization():
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
     serializer.serialize(wf)
+    serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
-    wf2 = deserializer.deserialize()
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    wf2 = objects[0]
     assert np.allclose(wf.data, wf2.data)
     assert wf.number_of_samples == wf2.number_of_samples
     assert wf.channels == wf2.channels
@@ -153,9 +162,12 @@ def test_ismrmrd_header_serialization():
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
     serializer.serialize(header)
+    serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
-    header2 = deserializer.deserialize()
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    header2 = objects[0]
     # Compare by converting both to XML strings
     assert header.toXML() == header2.toXML()
 
@@ -165,9 +177,12 @@ def test_ndarray_serialization():
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
     serializer.serialize(arr)
+    serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
-    arr2 = deserializer.deserialize()
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    arr2 = objects[0]
     assert np.array_equal(arr, arr2)
     assert arr.dtype == arr2.dtype
     assert arr.shape == arr2.shape
@@ -178,8 +193,77 @@ def test_text_serialization():
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
     serializer.serialize(text)
+    serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
-    text2 = deserializer.deserialize()
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    text2 = objects[0]
     assert text == text2
     assert isinstance(text2, str)
+
+
+def test_interleaved_serialization():
+    """Test serialization and deserialization of multiple interleaved objects."""
+    # Create test objects
+    acq = common.create_random_acquisition()
+    img = common.create_random_image()
+    wf = common.create_random_waveform()
+    header = common.create_example_ismrmrd_header()
+    arr = common.create_random_ndarray()
+    text = "Test interleaved text message 🚀"
+
+    # Serialize all objects in a specific order
+    stream = io.BytesIO()
+    serializer = ProtocolSerializer(stream)
+    serializer.serialize(acq)
+    serializer.serialize(text)
+    serializer.serialize(img)
+    serializer.serialize(header)
+    serializer.serialize(arr)
+    serializer.serialize(wf)
+    serializer.close()
+
+    # Deserialize and verify order and content
+    stream.seek(0)
+    deserializer = ProtocolDeserializer(stream)
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 6
+
+    # First object: Acquisition
+    obj1 = objects[0]
+    assert isinstance(obj1, Acquisition)
+    assert np.allclose(acq.data, obj1.data)
+    assert np.allclose(acq.traj, obj1.traj)
+    assert acq.flags == obj1.flags
+
+    # Second object: Text
+    obj2 = objects[1]
+    assert isinstance(obj2, str)
+    assert text == obj2
+
+    # Third object: Image
+    obj3 = objects[2]
+    assert isinstance(obj3, Image)
+    assert np.allclose(img.data, obj3.data)
+    assert img.matrix_size == obj3.matrix_size
+    assert img.channels == obj3.channels
+
+    # Fourth object: Header
+    obj4 = objects[3]
+    assert isinstance(obj4, type(header))  # ismrmrdHeader type
+    assert header.toXML() == obj4.toXML()
+
+    # Fifth object: NDArray
+    obj5 = objects[4]
+    assert isinstance(obj5, np.ndarray)
+    assert np.array_equal(arr, obj5)
+    assert arr.dtype == obj5.dtype
+    assert arr.shape == obj5.shape
+
+    # Sixth object: Waveform
+    obj6 = objects[5]
+    assert isinstance(obj6, Waveform)
+    assert np.allclose(wf.data, obj6.data)
+    assert wf.number_of_samples == obj6.number_of_samples
+    assert wf.channels == obj6.channels
