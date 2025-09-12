@@ -293,14 +293,10 @@ class Image(FlagsMixin):
             raise RuntimeError("meta must be of type Meta or dict")
 
     @property
-    def matrix_size(self, warn=True):
-        if warn:
-            warnings.warn(
-                "This function currently returns a result that is inconsistent (transposed) " +
-                "compared to the matrix_size in the ImageHeader and from .getHead().matrix_size. " +
-                "This function will be made consistent in a future version and this message " +
-                "will be removed."
-            )
+    def matrix_size(self):
+        """This function currently returns a result that is inconsistent (transposed)
+            compared to the matrix_size in the ImageHeader and from .getHead().matrix_size.
+            This function will be made consistent in a future version and this message will be removed."""
         return self.__data.shape[1:4]
 
     @property

@@ -1,5 +1,6 @@
 *~
 *.h5
+*.ismrmrd
 *.pyc
 MANIFEST
 build/

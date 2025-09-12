@@ -272,46 +272,9 @@ def test_file_can_rewrite_data_and_images():
         imageset.images = random_images(2)
         imageset.images = random_images(3)
 
-example_header = """<?xml version="1.0" encoding="utf-8"?>
-<ismrmrdHeader xmlns="http://www.ismrm.org/ISMRMRD" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd">
-   <experimentalConditions>
-      <H1resonanceFrequency_Hz>32130323</H1resonanceFrequency_Hz>
-   </experimentalConditions>
-   <encoding>
-      <encodedSpace>
-         <matrixSize>
-            <x>64</x>
-            <y>64</y>
-            <z>1</z>
-         </matrixSize>
-         <fieldOfView_mm>
-            <x>300</x>
-            <y>300</y>
-            <z>40</z>
-         </fieldOfView_mm>
-      </encodedSpace>
-      <reconSpace>
-         <matrixSize>
-            <x>64</x>
-            <y>64</y>
-            <z>1</z>
-         </matrixSize>
-         <fieldOfView_mm>
-            <x>300</x>
-            <y>300</y>
-            <z>40</z>
-         </fieldOfView_mm>
-      </reconSpace>
-      <trajectory>radial</trajectory>
-      <encodingLimits>
-      </encodingLimits>
-   </encoding>
-</ismrmrdHeader>
-"""
-
 def test_file_can_read_and_write_headers():
     filename = os.path.join(temp_dir, "file.h5")
-    header = ismrmrd.xsd.CreateFromDocument(example_header)
+    header = create_example_ismrmrd_header()
     with ismrmrd.File(filename) as file:
         dataset = file['dataset']
         dataset.header = header
