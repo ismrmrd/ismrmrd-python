@@ -1,11 +1,11 @@
 import h5py
-import numpy
+import numpy as np
 
-from .hdf5 import *
-from .acquisition import *
-from .waveform import *
-from .image import *
-from .xsd import ToXML
+from .hdf5 import acquisition_header_dtype, acquisition_dtype, waveform_header_dtype, waveform_dtype, image_header_dtype
+from .acquisition import Acquisition
+from .waveform import Waveform
+from .image import Image
+from .xsd import ToXML, CreateFromDocument
 
 
 class DataWrapper:
@@ -32,7 +32,7 @@ class DataWrapper:
         except TypeError:
             iterable = [self.to_numpy(value)]
 
-        self.data[key] = numpy.array(iterable, dtype=self.datatype)
+        self.data[key] = np.array(iterable, dtype=self.datatype)
 
     def __repr__(self):
         return type(self).__name__ + " containing " + self.data.__repr__()
@@ -98,7 +98,7 @@ class Waveforms(DataWrapper):
         # of padding and alignment. Nu guarantees are given, so we need create a structured array
         # with a header to have the contents filled in correctly. We start with an array of
         # zeroes to avoid garbage in the padding bytes.
-        header_array = numpy.zeros((1,), dtype=waveform_header_dtype)
+        header_array = np.zeros((1,), dtype=waveform_header_dtype)
         header_array[0] = raw['head']
 
         waveform = Waveform(header_array)
@@ -149,9 +149,9 @@ class Images:
         except TypeError:
             iterable = [self.to_numpy(value)]
 
-        self.headers[key] = numpy.stack([header for header, _, __ in iterable])
-        self.data[key] = numpy.stack([data for _, data, __ in iterable])
-        self.attributes[key] = numpy.stack([attributes for _, __, attributes in iterable])
+        self.headers[key] = np.stack([header for header, _, __ in iterable])
+        self.data[key] = np.stack([data for _, data, __ in iterable])
+        self.attributes[key] = np.stack([attributes for _, __, attributes in iterable])
 
     @classmethod
     def from_numpy(cls, header, data, attributes):
@@ -252,7 +252,7 @@ class Container(Folder):
         if self.has_images():
             raise TypeError("Cannot add acquisitions when images are present.")
 
-        buffer = numpy.array([Acquisitions.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
+        buffer = np.array([Acquisitions.to_numpy(a) for a in acquisitions], dtype=acquisition_dtype)
 
         self.__del_acquisitions()
         self._contents.create_dataset('data',data=buffer,maxshape=(None,),chunks=True)
@@ -275,7 +275,7 @@ class Container(Folder):
             raise TypeError("Cannot add waveforms when images are present.")
 
         converter = Waveforms(None)
-        buffer = numpy.array([converter.to_numpy(w) for w in waveforms], dtype=waveform_dtype)
+        buffer = np.array([converter.to_numpy(w) for w in waveforms], dtype=waveform_dtype)
 
         self.__del_waveforms()
         self._contents.create_dataset('waveforms', data=buffer, maxshape=(None,),chunks=True)
@@ -303,9 +303,9 @@ class Container(Folder):
 
         images = list(images)
 
-        data = numpy.stack([image.data for image in images])
-        headers = numpy.stack([np.frombuffer(image.getHead(), dtype=image_header_dtype) for image in images])
-        attributes = numpy.stack([image.attribute_string for image in images])
+        data = np.stack([image.data for image in images])
+        headers = np.stack([np.frombuffer(image.getHead(), dtype=image_header_dtype) for image in images])
+        attributes = np.stack([image.attribute_string for image in images])
 
         self.__del_images()
         self._contents.create_dataset('data', data=data)
@@ -323,7 +323,7 @@ class Container(Folder):
     def __get_header(self):
         if not self.has_header():
             return None
-        return ismrmrd.xsd.CreateFromDocument(self._contents['xml'][0])
+        return CreateFromDocument(self._contents['xml'][0])
 
     def __set_header(self, header):
         self.__del_header()
