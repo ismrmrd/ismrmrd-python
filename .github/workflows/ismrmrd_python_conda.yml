@@ -36,7 +36,7 @@ jobs:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         working-directory: conda
         run: |
-          for p in $(find build_pkg/ -regex '.*/ismrmrd-python.*\.\(conda\|tar.bz2\)')
+          for p in $(find build_pkg -name 'ismrmrd-python*.conda' -or -name 'ismrmrd-python*.tar.bz2')
           do
             ./publish_package.sh -u ismrmrd -t "$ANACONDA_TOKEN" -p "$p"
           done
