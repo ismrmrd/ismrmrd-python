@@ -58,7 +58,7 @@ class GenerateSchemaCommand(Command):
         import sys
         import subprocess
         # subpackage_name = 'ismrmrdschema'
-        args = [sys.executable, '-m', 'xsdata', str(schema_filename), '--config', str(config_filename), '--package', subpackage_name]
+        args = [sys.executable, '-m', 'xsdata', 'generate', str(schema_filename), '--config', str(config_filename), '--package', subpackage_name]
         subprocess.run(args)
         self.fix_init_file(subpackage_name, f"{subpackage_name}/__init__.py")
         destination = os.path.join(outdir, subpackage_name)
@@ -66,7 +66,7 @@ class GenerateSchemaCommand(Command):
         shutil.move(subpackage_name, destination)
 
 setup(
-    version='1.14.2',
+    version='1.14.3',
     packages=find_packages(),
     cmdclass={
         'generate_schema': GenerateSchemaCommand

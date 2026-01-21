@@ -1,4 +1,4 @@
 h5py==3.14.0
 pytest==8.4.1
 numpy==2.3.2
-xsdata==25.7
+xsdata==26.1
