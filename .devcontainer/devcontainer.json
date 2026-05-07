@@ -1,6 +1,5 @@
 {
     "name": "ismrmrd-python conda",
-    "image": "condaforge/miniforge3:latest",
-    "postCreateCommand": "conda install -y conda-build anaconda-client",
-    "remoteUser": "root"
+    "image": "condaforge/miniforge3:24.11.3-0",
+    "postCreateCommand": "conda install -y conda-build anaconda-client"
 }
