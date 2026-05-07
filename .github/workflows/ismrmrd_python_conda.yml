@@ -10,10 +10,7 @@ on:
 
 jobs:
   build-conda-packages:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: conda-incubator/setup-miniconda@v3
