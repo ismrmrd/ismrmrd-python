@@ -12,7 +12,7 @@ from .hdf5 import Dataset
 from .meta import Meta
 from .waveform import WaveformHeader, Waveform
 from .file import File
-from .serialization import ProtocolSerializer, ProtocolDeserializer
+from .serialization import ProtocolSerializer, ProtocolDeserializer, ConfigFile, ConfigText
 
 from . import xsd
 

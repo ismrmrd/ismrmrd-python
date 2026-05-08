@@ -6,7 +6,7 @@ from ismrmrd.acquisition import Acquisition, EncodingCounters, AcquisitionHeader
 from ismrmrd.image import Image, ImageHeader
 from ismrmrd.meta import Meta
 from ismrmrd.waveform import Waveform, WaveformHeader
-from ismrmrd.serialization import ProtocolSerializer, ProtocolDeserializer
+from ismrmrd.serialization import ProtocolSerializer, ProtocolDeserializer, ConfigFile, ConfigText
 from ismrmrd.xsd import ismrmrdHeader, CreateFromDocument
 from test_file import example_header
 
@@ -270,28 +270,30 @@ def test_interleaved_serialization():
 
 
 def test_config_file_serialization():
-    config = "path/to/config.xml"
+    config = ConfigFile("path/to/config.xml")
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
-    serializer.serialize(config, config_file=True)
+    serializer.serialize(config)
     serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
     objects = list(deserializer.deserialize())
     assert len(objects) == 1
+    assert isinstance(objects[0], ConfigFile)
     assert objects[0] == config
 
 
 def test_config_text_serialization():
-    config = "<ismrmrdHeader><experimentalConditions><H1resonanceFrequency_Hz>128000000</H1resonanceFrequency_Hz></experimentalConditions></ismrmrdHeader>"
+    config = ConfigText("<ismrmrdHeader><experimentalConditions><H1resonanceFrequency_Hz>128000000</H1resonanceFrequency_Hz></experimentalConditions></ismrmrdHeader>")
     stream = io.BytesIO()
     serializer = ProtocolSerializer(stream)
-    serializer.serialize(config, config_text=True)
+    serializer.serialize(config)
     serializer.close()
     stream.seek(0)
     deserializer = ProtocolDeserializer(stream)
     objects = list(deserializer.deserialize())
     assert len(objects) == 1
+    assert isinstance(objects[0], ConfigText)
     assert objects[0] == config
 
 

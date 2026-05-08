@@ -5,7 +5,7 @@ import numpy as np
 
 def sign_of_directions(read_dir, phase_dir, slice_dir):
     """Return +1 if the rotation matrix formed by the three direction cosines
-    has a positive determinant, -1 otherwise.
+    has a non-negative determinant, -1 otherwise.
 
     Parameters correspond to the ``read_dir``, ``phase_dir``, and
     ``slice_dir`` fields of :class:`~ismrmrd.AcquisitionHeader` /

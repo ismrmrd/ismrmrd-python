@@ -15,8 +15,25 @@ from enum import IntEnum
 # Fixed size of a CONFIG_FILE message payload (matches C++ ConfigFile struct)
 _CONFIG_FILE_SIZE = 1024
 
+
+class ConfigFile(str):
+    """Wraps a config filename/path for serialization as a CONFIG_FILE (ID=1) message.
+
+    CONFIG_FILE messages carry a fixed 1024-byte null-padded payload, matching
+    the C++ ``ConfigFile`` struct.
+    """
+
+
+class ConfigText(str):
+    """Wraps config XML text for serialization as a CONFIG_TEXT (ID=2) message.
+
+    CONFIG_TEXT messages use a 4-byte length prefix, matching the C++
+    ``ConfigText`` struct.
+    """
+
+
 # Type alias for serializable objects
-SerializableObject = Union[Acquisition, Image, Waveform, ismrmrdHeader, np.ndarray, str]
+SerializableObject = Union[Acquisition, Image, Waveform, ismrmrdHeader, np.ndarray, ConfigFile, ConfigText, str]
 
 class ISMRMRDMessageID(IntEnum):
     UNPEEKED = 0
@@ -62,16 +79,21 @@ class ProtocolSerializer:
     def _write_message_id(self, msgid: ISMRMRDMessageID) -> None:
         self._stream.write(struct.pack('<H', msgid))
 
-    def serialize(self, obj: SerializableObject, *, config_file: bool = False, config_text: bool = False) -> None:
+    def serialize(self, obj: SerializableObject) -> None:
         """
         Serializes an ISMRMRD object and writes to the configured stream.
 
-        For ``str`` payloads, the message type defaults to TEXT (ID=5).  Pass
-        ``config_file=True`` to emit a CONFIG_FILE (ID=1, fixed 1024-byte
-        payload) or ``config_text=True`` to emit a CONFIG_TEXT (ID=2,
-        length-prefixed), matching the C++ ``ConfigFile``/``ConfigText`` types.
+        Pass a :class:`ConfigFile` or :class:`ConfigText` instance to emit the
+        corresponding CONFIG_FILE (ID=1) or CONFIG_TEXT (ID=2) message type.
+        A plain ``str`` is serialized as TEXT (ID=5).
         """
-        if isinstance(obj, Acquisition):
+        if isinstance(obj, ConfigFile):
+            self._write_message_id(ISMRMRDMessageID.CONFIG_FILE)
+            self._serialize_config_file(obj)
+        elif isinstance(obj, ConfigText):
+            self._write_message_id(ISMRMRDMessageID.CONFIG_TEXT)
+            self._serialize_text(obj)
+        elif isinstance(obj, Acquisition):
             self._write_message_id(ISMRMRDMessageID.ACQUISITION)
             obj.serialize_into(self._stream.write)
         elif isinstance(obj, Image):
@@ -87,15 +109,8 @@ class ProtocolSerializer:
             self._write_message_id(ISMRMRDMessageID.NDARRAY)
             self._serialize_ndarray(obj)
         elif isinstance(obj, str):
-            if config_file:
-                self._write_message_id(ISMRMRDMessageID.CONFIG_FILE)
-                self._serialize_config_file(obj)
-            elif config_text:
-                self._write_message_id(ISMRMRDMessageID.CONFIG_TEXT)
-                self._serialize_text(obj)
-            else:
-                self._write_message_id(ISMRMRDMessageID.TEXT)
-                self._serialize_text(obj)
+            self._write_message_id(ISMRMRDMessageID.TEXT)
+            self._serialize_text(obj)
         else:
             raise TypeError(f"Unsupported type: {type(obj)}")
 
@@ -170,7 +185,12 @@ class ProtocolDeserializer:
             if self._peeked_id == ISMRMRDMessageID.IMAGE:
                 from ismrmrd.image import ImageHeader
                 import ctypes
-                self._peeked_image_header = self._stream.read(ctypes.sizeof(ImageHeader))
+                header_size = ctypes.sizeof(ImageHeader)
+                self._peeked_image_header = self._stream.read(header_size)
+                if len(self._peeked_image_header) < header_size:
+                    self._peeked_id = ISMRMRDMessageID.UNPEEKED
+                    self._peeked_image_header = None
+                    raise EOFError("Incomplete IMAGE header in stream")
         return self._peeked_id
 
     def peek_image_data_type(self) -> int:
@@ -219,7 +239,7 @@ class ProtocolDeserializer:
             elif msg_id == ISMRMRDMessageID.CONFIG_FILE:
                 yield self._deserialize_config_file()
             elif msg_id == ISMRMRDMessageID.CONFIG_TEXT:
-                yield self._deserialize_text()
+                yield ConfigText(self._deserialize_text())
             elif msg_id == ISMRMRDMessageID.TEXT:
                 yield self._deserialize_text()
             elif msg_id == ISMRMRDMessageID.CLOSE:
@@ -227,12 +247,12 @@ class ProtocolDeserializer:
             else:
                 raise ValueError(f"Unknown MessageID: {msg_id}")
 
-    def _deserialize_config_file(self) -> str:
-        """Reads the fixed 1024-byte CONFIG_FILE payload and returns it as a str."""
+    def _deserialize_config_file(self) -> ConfigFile:
+        """Reads the fixed 1024-byte CONFIG_FILE payload and returns it as a ConfigFile."""
         payload = self._stream.read(_CONFIG_FILE_SIZE)
         if len(payload) < _CONFIG_FILE_SIZE:
             raise EOFError("Incomplete CONFIG_FILE payload")
-        return payload.rstrip(b'\x00').decode('utf-8')
+        return ConfigFile(payload.rstrip(b'\x00').decode('utf-8'))
 
     def _deserialize_ismrmrd_header(self) -> ismrmrdHeader:
         length_bytes = self._stream.read(4)
