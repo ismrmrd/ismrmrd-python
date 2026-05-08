@@ -1,15 +1,14 @@
 [build-system]
-requires = ["setuptools", "xsdata[cli]"]
+requires = ["setuptools", "xsdata[cli]==26.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ismrmrd"
 dynamic = ["version"]
-dependencies = ["h5py>=2.3", "numpy>=1.22.0", "xsdata>=22.12"]
-requires-python = ">=3.9"
+dependencies = ["h5py>=2.3", "numpy>=1.22.0", "xsdata>=26.1"]
+requires-python = ">=3.10"
 
 authors = [{name = "ISMRMRD Developers"}]
-
 description = "Python implementation of ISMRMRD"
 readme = "README.md"
 license-files = ["LICENSE"]
@@ -27,3 +26,6 @@ classifiers = [
 Homepage = "https://github.com/ismrmrd/ismrmrd-python"
 Documentation = "https://github.com/ismrmrd/ismrmrd-python"
 Repository = "https://github.com/ismrmrd/ismrmrd-python"
+
+[project.optional-dependencies]
+dev = ["pytest", "build", "setuptools", "xsdata[cli]==26.1"]

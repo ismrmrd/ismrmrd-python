@@ -135,6 +135,15 @@ class Image(FlagsMixin):
     def deserialize_from(read_exactly):
 
         header_bytes = read_exactly(ctypes.sizeof(ImageHeader))
+        return Image.deserialize_from_with_header(header_bytes, read_exactly)
+
+    @staticmethod
+    def deserialize_from_with_header(header_bytes, read_exactly):
+        """Deserialize an Image when the header bytes have already been read.
+
+        Used by :class:`~ismrmrd.serialization.ProtocolDeserializer` when
+        ``peek()`` has already consumed the header from the stream.
+        """
         attribute_length_bytes = read_exactly(ctypes.sizeof(ctypes.c_uint64))
         attribute_length = ctypes.c_uint64.from_buffer_copy(attribute_length_bytes)
         attribute_bytes = read_exactly(attribute_length.value).rstrip(b'\0')
@@ -176,8 +185,36 @@ class Image(FlagsMixin):
             return stream.getvalue()
 
     @staticmethod
-    def from_array(array, acquisition=Acquisition(), transpose=True, **kwargs):
+    def from_array(array, acquisition=Acquisition(), transpose=False, **kwargs):
+        """Create an :class:`Image` from a numpy array.
 
+        The array must be in row-major (C) order with shape one of:
+        - ``(x,)``
+        - ``(y, x)``
+        - ``(z, y, x)``
+        - ``(channels, z, y, x)``
+
+        The ``matrix_size`` header field is set to ``(x, y, z)``.
+
+        .. deprecated:: 1.14.x
+            Passing ``transpose=True`` (the old default) is deprecated.  The
+            default is now ``False`` (row-major / numpy-native).  If you were
+            relying on the old behaviour, transpose your array explicitly before
+            calling this function.
+        """
+
+        if transpose:
+            warnings.warn(
+                "transpose=True is deprecated and will be removed in a future version. "
+                "Pass your array in row-major order (shape (..., z, y, x)) and use "
+                "transpose=False (the new default).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            array = array.transpose()
+
+        # After possible transposition the array is (…, z, y, x) or (…, x).
+        # We need to derive (nchannels, x, y, z) for the header.
         def input_shape_to_header_format(array):
             def with_defaults(first=1, second=1, third=1, nchannels=1):
                 return nchannels, (first, second, third)
@@ -186,16 +223,6 @@ class Image(FlagsMixin):
 
         def header_format_to_resize_shape(nchannels, first, second, third):
             return nchannels, third, second, first
-
-        if transpose:
-            warnings.warn(
-                "The default behavior of this function is currently column-major which " +
-                "is inconsistent with numpy using row-major by default. In a future " +
-                "version this will be changed. Please switch to setting transpose in " +
-                "this function to false to switch to the new behavior.",
-                PendingDeprecationWarning
-            )
-            array = array.transpose()
 
         nchannels, matrix_size = input_shape_to_header_format(array)
 
@@ -294,10 +321,8 @@ class Image(FlagsMixin):
 
     @property
     def matrix_size(self):
-        """This function currently returns a result that is inconsistent (transposed)
-            compared to the matrix_size in the ImageHeader and from .getHead().matrix_size.
-            This function will be made consistent in a future version and this message will be removed."""
-        return self.__data.shape[1:4]
+        """Return ``(x, y, z)`` matching :attr:`ImageHeader.matrix_size`."""
+        return tuple(self._head.matrix_size)
 
     @property
     def attribute_string_len(self):

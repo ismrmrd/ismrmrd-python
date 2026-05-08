@@ -13,15 +13,14 @@ build:
 requirements:
   build:
     - python
-    - xsdata>=24.0
     - setuptools
     - pip
 
   run:
-    - python >=3.9
+    - python >=3.10
     - numpy>=1.22.0
     - h5py>=2.3
-    - xsdata>=24.0
+    - xsdata>=26.1
 
 test:
   imports:

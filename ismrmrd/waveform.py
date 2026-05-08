@@ -108,7 +108,7 @@ class Waveform(FlagsMixin):
 
     def setHead(self, hdr):
         self._head = self._head.__class__.from_buffer_copy(hdr)
-        self.resize(self._head.number_of_samples, self._head.active_channels)
+        self.resize(self._head.number_of_samples, self._head.channels)
 
     @property
     def data(self):

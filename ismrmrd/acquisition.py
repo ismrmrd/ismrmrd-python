@@ -4,7 +4,7 @@ import copy
 import io
 
 from .constants import *
-from .flags import FlagsMixin
+from .flags import FlagsMixin, ChannelMaskMixin
 from .equality import EqualityMixin
 from . import decorators
 
@@ -33,7 +33,7 @@ class EncodingCounters(EqualityMixin, ctypes.Structure):
         return retstr
 
 
-class AcquisitionHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
+class AcquisitionHeader(FlagsMixin, ChannelMaskMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 2
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
@@ -71,7 +71,7 @@ class AcquisitionHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
 
 
 @decorators.expose_header_fields(AcquisitionHeader)
-class Acquisition(FlagsMixin):
+class Acquisition(FlagsMixin, ChannelMaskMixin):
     _readonly = ('number_of_samples', 'active_channels', 'trajectory_dimensions')
 
     @staticmethod

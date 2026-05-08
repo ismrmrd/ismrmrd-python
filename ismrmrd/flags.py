@@ -26,3 +26,27 @@ class FlagsMixin(object):
     def clear_flag(self, flag):
         self.flags &= ~(1 << (flag - 1))
 
+
+class ChannelMaskMixin(object):
+    """Mixin providing channel mask helpers for structs with a channel_mask field.
+
+    channel_mask is uint64[16], supporting up to 1024 channels.
+    Channel N lives in word N // 64, bit position N % 64.
+    """
+
+    def isChannelActive(self, channel_id):
+        word, bit = divmod(channel_id, 64)
+        return bool(self.channel_mask[word] & (1 << bit))
+
+    def setChannelActive(self, channel_id):
+        word, bit = divmod(channel_id, 64)
+        self.channel_mask[word] |= (1 << bit)
+
+    def setChannelNotActive(self, channel_id):
+        word, bit = divmod(channel_id, 64)
+        self.channel_mask[word] &= ~(1 << bit)
+
+    def setAllChannelsNotActive(self):
+        for i in range(len(self.channel_mask)):
+            self.channel_mask[i] = 0
+

@@ -12,6 +12,9 @@ from ismrmrd.xsd import ismrmrdHeader, CreateFromDocument
 
 from enum import IntEnum
 
+# Fixed size of a CONFIG_FILE message payload (matches C++ ConfigFile struct)
+_CONFIG_FILE_SIZE = 1024
+
 # Type alias for serializable objects
 SerializableObject = Union[Acquisition, Image, Waveform, ismrmrdHeader, np.ndarray, str]
 
@@ -59,9 +62,14 @@ class ProtocolSerializer:
     def _write_message_id(self, msgid: ISMRMRDMessageID) -> None:
         self._stream.write(struct.pack('<H', msgid))
 
-    def serialize(self, obj: SerializableObject) -> None:
+    def serialize(self, obj: SerializableObject, *, config_file: bool = False, config_text: bool = False) -> None:
         """
         Serializes an ISMRMRD object and writes to the configured stream.
+
+        For ``str`` payloads, the message type defaults to TEXT (ID=5).  Pass
+        ``config_file=True`` to emit a CONFIG_FILE (ID=1, fixed 1024-byte
+        payload) or ``config_text=True`` to emit a CONFIG_TEXT (ID=2,
+        length-prefixed), matching the C++ ``ConfigFile``/``ConfigText`` types.
         """
         if isinstance(obj, Acquisition):
             self._write_message_id(ISMRMRDMessageID.ACQUISITION)
@@ -79,8 +87,15 @@ class ProtocolSerializer:
             self._write_message_id(ISMRMRDMessageID.NDARRAY)
             self._serialize_ndarray(obj)
         elif isinstance(obj, str):
-            self._write_message_id(ISMRMRDMessageID.TEXT)
-            self._serialize_text(obj)
+            if config_file:
+                self._write_message_id(ISMRMRDMessageID.CONFIG_FILE)
+                self._serialize_config_file(obj)
+            elif config_text:
+                self._write_message_id(ISMRMRDMessageID.CONFIG_TEXT)
+                self._serialize_text(obj)
+            else:
+                self._write_message_id(ISMRMRDMessageID.TEXT)
+                self._serialize_text(obj)
         else:
             raise TypeError(f"Unsupported type: {type(obj)}")
 
@@ -98,6 +113,14 @@ class ProtocolSerializer:
         self._stream.write(struct.pack('<' + 'Q' * ndim, *dims))
         self._stream.write(arr.tobytes())
 
+    def _serialize_config_file(self, text: str) -> None:
+        """Writes a fixed 1024-byte null-padded CONFIG_FILE payload."""
+        encoded = text.encode('utf-8')
+        if len(encoded) >= _CONFIG_FILE_SIZE:
+            raise ValueError(f"config_file string too long (max {_CONFIG_FILE_SIZE - 1} bytes encoded)")
+        payload = encoded + b'\x00' * (_CONFIG_FILE_SIZE - len(encoded))
+        self._stream.write(payload)
+
     def _serialize_text(self, text: str) -> None:
         text_bytes = text.encode('utf-8')
         self._stream.write(struct.pack('<I', len(text_bytes)))
@@ -114,6 +137,9 @@ class ProtocolDeserializer:
         else:
             self._stream = stream
             self._owns_stream = False
+        # peek() state
+        self._peeked_id: int = ISMRMRDMessageID.UNPEEKED
+        self._peeked_image_header: Union[None, bytes] = None
 
     def __enter__(self) -> 'ProtocolDeserializer':
         return self
@@ -129,31 +155,84 @@ class ProtocolDeserializer:
         if self._owns_stream:
             self._stream.close()
 
+    def peek(self) -> int:
+        """Return the message ID of the next message without consuming it.
+
+        For IMAGE messages, the full :class:`ImageHeader` bytes are also buffered
+        so that :meth:`peek_image_data_type` can return the data type without
+        requiring a separate read.  Matches the C++ ``ProtocolDeserializer::peek()``.
+        """
+        if self._peeked_id == ISMRMRDMessageID.UNPEEKED:
+            msg_id_bytes = self._stream.read(2)
+            if not msg_id_bytes or len(msg_id_bytes) < 2:
+                raise EOFError("End of stream or incomplete message ID")
+            self._peeked_id = struct.unpack('<H', msg_id_bytes)[0]
+            if self._peeked_id == ISMRMRDMessageID.IMAGE:
+                from ismrmrd.image import ImageHeader
+                import ctypes
+                self._peeked_image_header = self._stream.read(ctypes.sizeof(ImageHeader))
+        return self._peeked_id
+
+    def peek_image_data_type(self) -> int:
+        """Return the data type of the next IMAGE message.
+
+        :raises RuntimeError: if the next message is not an IMAGE.
+        """
+        if self._peeked_id != ISMRMRDMessageID.IMAGE:
+            raise RuntimeError("Cannot peek image data type: next message is not IMAGE")
+        from ismrmrd.image import ImageHeader
+        import ctypes
+        header = ImageHeader.from_buffer_copy(self._peeked_image_header)
+        return header.data_type
+
     def deserialize(self) -> Generator[SerializableObject, None, None]:
         """
         Reads from the stream, yielding each ISMRMRD object as a generator.
         """
         while True:
-            msg_id_bytes = self._stream.read(2)
-            if not msg_id_bytes or len(msg_id_bytes) < 2:
-                raise EOFError("End of stream or incomplete message ID")
-            msg_id = struct.unpack('<H', msg_id_bytes)[0]
+            # Honour any peeked message ID first
+            if self._peeked_id != ISMRMRDMessageID.UNPEEKED:
+                msg_id = self._peeked_id
+                self._peeked_id = ISMRMRDMessageID.UNPEEKED
+            else:
+                msg_id_bytes = self._stream.read(2)
+                if not msg_id_bytes or len(msg_id_bytes) < 2:
+                    raise EOFError("End of stream or incomplete message ID")
+                msg_id = struct.unpack('<H', msg_id_bytes)[0]
+
             if msg_id == ISMRMRDMessageID.ACQUISITION:
                 yield Acquisition.deserialize_from(self._stream.read)
             elif msg_id == ISMRMRDMessageID.IMAGE:
-                yield Image.deserialize_from(self._stream.read)
+                # For images, the header may have already been read by peek()
+                if self._peeked_image_header is not None:
+                    buffered_header = self._peeked_image_header
+                    self._peeked_image_header = None
+                    yield Image.deserialize_from_with_header(buffered_header, self._stream.read)
+                else:
+                    yield Image.deserialize_from(self._stream.read)
             elif msg_id == ISMRMRDMessageID.WAVEFORM:
                 yield Waveform.deserialize_from(self._stream.read)
             elif msg_id == ISMRMRDMessageID.HEADER:
                 yield self._deserialize_ismrmrd_header()
             elif msg_id == ISMRMRDMessageID.NDARRAY:
                 yield self._deserialize_ndarray()
+            elif msg_id == ISMRMRDMessageID.CONFIG_FILE:
+                yield self._deserialize_config_file()
+            elif msg_id == ISMRMRDMessageID.CONFIG_TEXT:
+                yield self._deserialize_text()
             elif msg_id == ISMRMRDMessageID.TEXT:
                 yield self._deserialize_text()
             elif msg_id == ISMRMRDMessageID.CLOSE:
                 return
             else:
                 raise ValueError(f"Unknown MessageID: {msg_id}")
+
+    def _deserialize_config_file(self) -> str:
+        """Reads the fixed 1024-byte CONFIG_FILE payload and returns it as a str."""
+        payload = self._stream.read(_CONFIG_FILE_SIZE)
+        if len(payload) < _CONFIG_FILE_SIZE:
+            raise EOFError("Incomplete CONFIG_FILE payload")
+        return payload.rstrip(b'\x00').decode('utf-8')
 
     def _deserialize_ismrmrd_header(self) -> ismrmrdHeader:
         length_bytes = self._stream.read(4)

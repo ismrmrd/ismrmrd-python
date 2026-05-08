@@ -62,13 +62,13 @@ def test_initialization_sets_nonzero_version():
 def test_initialization_with_array():
     image_data = common.create_random_array((256, 128), dtype=np.float32)
     image = ismrmrd.Image.from_array(image_data)
-    assert np.array_equal(image_data.transpose(), image.data.squeeze())
+    assert np.array_equal(image_data, image.data.squeeze())
 
 def test_initialization_with_array_and_acquisition():
     acquisition = common.create_random_acquisition()
     image_data = common.create_random_array((256, 128), dtype=np.float32)
     image = ismrmrd.Image.from_array(image_data, acquisition=acquisition)
-    assert np.array_equal(image_data.transpose(), image.data.squeeze())
+    assert np.array_equal(image_data, image.data.squeeze())
     for field in ['version', 'measurement_uid', 'position', 'read_dir', 'phase_dir', 'slice_dir', 'patient_table_position', 'acquisition_time_stamp', 'physiology_time_stamp']:
         assert bytes(getattr(acquisition, field)) == bytes(getattr(image, field))
 
@@ -94,21 +94,21 @@ def test_initialization_with_array_and_header_properties():
 def test_initialization_with_2d_image():
     image_data = common.create_random_array((128, 64), dtype=np.float32)
     image = ismrmrd.Image.from_array(image_data)
-    assert np.array_equal(image_data.transpose(), image.data.squeeze())
+    assert np.array_equal(image_data, image.data.squeeze())
     assert image.channels == 1
-    assert image.matrix_size == (1, 64, 128)
+    assert image.matrix_size == (64, 128, 1)
 
 def test_initialization_with_3d_image():
     image_data = common.create_random_array((128, 64, 32), dtype=np.float32)
     image = ismrmrd.Image.from_array(image_data)
-    assert np.array_equal(image_data.transpose(), image.data.squeeze())
+    assert np.array_equal(image_data, image.data.squeeze())
     assert image.channels == 1
     assert image.matrix_size == (32, 64, 128)
 
 def test_initialization_with_3d_image_and_channels():
-    image_data = common.create_random_array((128, 64, 32, 16), dtype=np.float32)
+    image_data = common.create_random_array((16, 128, 64, 32), dtype=np.float32)  # (nchannels, z, y, x)
     image = ismrmrd.Image.from_array(image_data)
-    assert np.array_equal(image_data.transpose(), image.data.squeeze())
+    assert np.array_equal(image_data, image.data.squeeze())
     assert image.channels == 16
     assert image.matrix_size == (32, 64, 128)
 
