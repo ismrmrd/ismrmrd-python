@@ -103,3 +103,19 @@ def test_read_and_write_waveforms_to_hdf5():
 
 def test_waveform_hdf5_size():
     assert ismrmrd.hdf5.waveform_header_dtype.itemsize == 40
+
+
+def test_dataset_read_only_mode():
+    filename = os.path.join(temp_dir, 'read_only.h5')
+
+    dataset = ismrmrd.Dataset(filename)
+    dataset.append_acquisition(create_random_acquisition())
+    dataset.close()
+
+    ro_dataset = ismrmrd.Dataset(filename, create_if_needed=False, mode='r')
+    assert ro_dataset.number_of_acquisitions() == 1
+    ro_dataset.close()
+
+    with pytest.raises(Exception):
+        ro_dataset2 = ismrmrd.Dataset(filename, create_if_needed=False, mode='r')
+        ro_dataset2.append_acquisition(create_random_acquisition())

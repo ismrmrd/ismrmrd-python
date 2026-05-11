@@ -69,8 +69,11 @@ class Waveform(FlagsMixin):
 
         channels, nsamples = data.shape
 
-        if nsamples > np.iinfo(np.uint16).max:
-            raise TypeError(f"Array has {nsamples} samples, which is greater than the maximum of {np.iinfo(np.uint16).max}")
+        uint16_max = np.iinfo(np.uint16).max
+        if nsamples > uint16_max:
+            raise ValueError(f"Array has {nsamples} samples, which is greater than the maximum of {uint16_max}")
+        if channels > uint16_max:
+            raise ValueError(f"Array has {channels} channels, which is greater than the maximum of {uint16_max}")
 
         array_data = {
             'version': 1,

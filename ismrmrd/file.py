@@ -375,7 +375,21 @@ class Container(Folder):
 class File(Folder):
 
     def __init__(self, filename, mode='a'):
-        self.__file = h5py.File(filename, mode,driver='stdio')
+        """Open an ISMRMRD File.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the HDF5 file.
+        mode : str, optional
+            h5py file-open mode.  Defaults to ``'a'`` (read/write, create if
+            needed).  Pass ``'r'`` for read-only access without touching the
+            file's modification time.  Valid values are the same as for
+            :func:`h5py.File`: ``'r'``, ``'r+'``, ``'w'``, ``'w-'``/``'x'``,
+            and ``'a'``.  See
+            https://docs.h5py.org/en/stable/high/file.html for details.
+        """
+        self.__file = h5py.File(filename, mode, driver='stdio')
         super().__init__(self.__file)
 
     def __enter__(self):
