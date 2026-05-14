@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ismrmrd"
 dynamic = ["version"]
-dependencies = ["h5py>=2.3", "numpy>=1.22.0", "xsdata>=26.1"]
+dependencies = ["h5py>=2.3", "numpy>=1.22.0", "xsdata>=26.2"]
 requires-python = ">=3.10"
 
 authors = [{name = "ISMRMRD Developers"}]

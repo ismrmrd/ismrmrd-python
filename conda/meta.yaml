@@ -20,7 +20,7 @@ requirements:
     - python >=3.10
     - numpy>=1.22.0
     - h5py>=2.3
-    - xsdata>=26.1
+    - xsdata>=26.2
 
 test:
   imports:
