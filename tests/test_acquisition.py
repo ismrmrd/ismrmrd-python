@@ -1,4 +1,5 @@
 import ismrmrd
+from ismrmrd.util import sign_of_directions, directions_to_quaternion, quaternion_to_directions
 import ctypes
 import numpy as np
 import io
@@ -208,3 +209,83 @@ def test_serialization_with_header_fields():
 def test_deserialization_from_too_few_bytes():
     with pytest.raises(ValueError):
         ismrmrd.Acquisition.from_bytes(b'')
+
+
+def test_channel_mask():
+    acq = ismrmrd.Acquisition()
+
+    # All channels off initially
+    for ch in range(1024):
+        assert not acq.isChannelActive(ch)
+
+    # Set and verify individual channels
+    for ch in [0, 63, 64, 127, 511, 1023]:
+        acq.setChannelActive(ch)
+        assert acq.isChannelActive(ch)
+
+    # Clear one channel
+    acq.setChannelNotActive(63)
+    assert not acq.isChannelActive(63)
+
+    # setAllChannelsNotActive clears everything
+    acq.setAllChannelsNotActive()
+    for ch in [0, 64, 127, 511, 1023]:
+        assert not acq.isChannelActive(ch)
+
+
+def test_channel_mask_on_header():
+    head = ismrmrd.AcquisitionHeader()
+
+    head.setChannelActive(0)
+    head.setChannelActive(1023)
+    assert head.isChannelActive(0)
+    assert head.isChannelActive(1023)
+    assert not head.isChannelActive(1)
+
+    head.setAllChannelsNotActive()
+    assert not head.isChannelActive(0)
+    assert not head.isChannelActive(1023)
+
+
+def test_sign_of_directions_positive():
+    # Standard orthonormal basis — determinant +1
+    read  = [1.0, 0.0, 0.0]
+    phase = [0.0, 1.0, 0.0]
+    slice_ = [0.0, 0.0, 1.0]
+    assert sign_of_directions(read, phase, slice_) == 1
+
+
+def test_sign_of_directions_negative():
+    # Flip one axis — determinant -1
+    read  = [1.0, 0.0, 0.0]
+    phase = [0.0, 1.0, 0.0]
+    slice_ = [0.0, 0.0, -1.0]
+    assert sign_of_directions(read, phase, slice_) == -1
+
+
+def test_directions_quaternion_roundtrip():
+    # Standard identity rotation
+    read  = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+    phase = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+    slice_ = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+
+    quat = directions_to_quaternion(read, phase, slice_)
+    r2, p2, s2 = quaternion_to_directions(quat)
+
+    assert np.allclose(read,   r2, atol=1e-6)
+    assert np.allclose(phase,  p2, atol=1e-6)
+    assert np.allclose(slice_, s2, atol=1e-6)
+
+
+def test_directions_quaternion_arbitrary_rotation():
+    # 90-degree rotation about z: read→y, phase→-x, slice→z
+    read  = np.array([0.0,  1.0, 0.0], dtype=np.float32)
+    phase = np.array([-1.0, 0.0, 0.0], dtype=np.float32)
+    slice_ = np.array([0.0,  0.0, 1.0], dtype=np.float32)
+
+    quat = directions_to_quaternion(read, phase, slice_)
+    r2, p2, s2 = quaternion_to_directions(quat)
+
+    assert np.allclose(read,   r2, atol=1e-6)
+    assert np.allclose(phase,  p2, atol=1e-6)
+    assert np.allclose(slice_, s2, atol=1e-6)

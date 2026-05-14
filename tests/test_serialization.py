@@ -6,7 +6,7 @@ from ismrmrd.acquisition import Acquisition, EncodingCounters, AcquisitionHeader
 from ismrmrd.image import Image, ImageHeader
 from ismrmrd.meta import Meta
 from ismrmrd.waveform import Waveform, WaveformHeader
-from ismrmrd.serialization import ProtocolSerializer, ProtocolDeserializer
+from ismrmrd.serialization import ProtocolSerializer, ProtocolDeserializer, ConfigFile, ConfigText
 from ismrmrd.xsd import ismrmrdHeader, CreateFromDocument
 from test_file import example_header
 
@@ -267,3 +267,73 @@ def test_interleaved_serialization():
     assert np.allclose(wf.data, obj6.data)
     assert wf.number_of_samples == obj6.number_of_samples
     assert wf.channels == obj6.channels
+
+
+def test_config_file_serialization():
+    config = ConfigFile("path/to/config.xml")
+    stream = io.BytesIO()
+    serializer = ProtocolSerializer(stream)
+    serializer.serialize(config)
+    serializer.close()
+    stream.seek(0)
+    deserializer = ProtocolDeserializer(stream)
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    assert isinstance(objects[0], ConfigFile)
+    assert objects[0] == config
+
+
+def test_config_text_serialization():
+    config = ConfigText("<ismrmrdHeader><experimentalConditions><H1resonanceFrequency_Hz>128000000</H1resonanceFrequency_Hz></experimentalConditions></ismrmrdHeader>")
+    stream = io.BytesIO()
+    serializer = ProtocolSerializer(stream)
+    serializer.serialize(config)
+    serializer.close()
+    stream.seek(0)
+    deserializer = ProtocolDeserializer(stream)
+    objects = list(deserializer.deserialize())
+    assert len(objects) == 1
+    assert isinstance(objects[0], ConfigText)
+    assert objects[0] == config
+
+
+def test_peek_acquisition():
+    from ismrmrd.serialization import ISMRMRDMessageID
+    acq = common.create_random_acquisition()
+    stream = io.BytesIO()
+    with ProtocolSerializer(stream) as s:
+        s.serialize(acq)
+    stream.seek(0)
+    d = ProtocolDeserializer(stream)
+    assert d.peek() == ISMRMRDMessageID.ACQUISITION
+    assert d.peek() == ISMRMRDMessageID.ACQUISITION  # idempotent
+    objects = list(d.deserialize())
+    assert len(objects) == 1
+    assert isinstance(objects[0], Acquisition)
+
+
+def test_peek_image_data_type():
+    from ismrmrd.serialization import ISMRMRDMessageID
+    img = common.create_random_image()
+    stream = io.BytesIO()
+    with ProtocolSerializer(stream) as s:
+        s.serialize(img)
+    stream.seek(0)
+    d = ProtocolDeserializer(stream)
+    assert d.peek() == ISMRMRDMessageID.IMAGE
+    assert d.peek_image_data_type() == img.data_type
+    objects = list(d.deserialize())
+    assert len(objects) == 1
+    assert np.allclose(img.data, objects[0].data)
+
+
+def test_peek_close():
+    from ismrmrd.serialization import ISMRMRDMessageID
+    stream = io.BytesIO()
+    with ProtocolSerializer(stream) as s:
+        pass  # writes only CLOSE
+    stream.seek(0)
+    d = ProtocolDeserializer(stream)
+    assert d.peek() == ISMRMRDMessageID.CLOSE
+    objects = list(d.deserialize())
+    assert objects == []

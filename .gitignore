@@ -10,3 +10,4 @@ dist/
 xsd.py
 .eggs
 .idea
+.venv/

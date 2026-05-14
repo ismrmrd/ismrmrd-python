@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ISMRMRD_IMAGE=ghcr.io/ismrmrd/ismrmrd:v1.14.2
+ISMRMRD_IMAGE=ghcr.io/ismrmrd/ismrmrd:v1.15.0
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 PROJECT_DIR=$(realpath "${SCRIPT_DIR}/../..")

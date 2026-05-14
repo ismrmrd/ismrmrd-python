@@ -7,18 +7,20 @@ package:
 source:
   path: ../
 
+build:
+  noarch: python
+
 requirements:
   build:
-    - python {{ python }}
-    - xsdata>=24.0
-    - setuptools
+    - python
+    - setuptools>=78
     - pip
 
   run:
-    - python
+    - python >=3.10
     - numpy>=1.22.0
     - h5py>=2.3
-    - xsdata>=24.0
+    - xsdata>=26.1
 
 test:
   imports:

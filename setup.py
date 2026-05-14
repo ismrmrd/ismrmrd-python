@@ -2,18 +2,22 @@ import os
 from setuptools import setup, find_packages, Command
 
 import shutil
-from pathlib import Path
 import re
 
 schema_file = os.path.join('schema','ismrmrd.xsd')
 config_file = os.path.join('schema','.xsdata.xml')
 
 
-import setuptools.command.build
-setuptools.command.build.build.sub_commands.append(("generate_schema", None))
+# The xsdata-generated files are committed to the repository.
+# The generate_schema command is kept here for maintainers to use when the
+# schema or the xsdata version changes:
+#
+#   python setup.py generate_schema
+#
+# After running it, commit the updated files under ismrmrd/xsd/ismrmrdschema/.
 
 class GenerateSchemaCommand(Command):
-    description = "Generate Python code from ISMRMRD XML schema using xsdata"
+    description = "Regenerate Python code from ISMRMRD XML schema using xsdata (maintainers only)"
     user_options = []
 
     def __init__(self, *args, **kwargs):
@@ -25,16 +29,11 @@ class GenerateSchemaCommand(Command):
         pass
 
     def finalize_options(self):
-        # Set build_lib for non-editable installs
-        self.set_undefined_options("build_py", ("build_lib", "build_lib"))
+        pass
 
     def run(self):
-        # Use editable_mode if present (PEP 660)
-        if self.editable_mode:
-            outdir = 'ismrmrd/xsd/'
-        else:
-            outdir = os.path.join(self.build_lib, 'ismrmrd/xsd/')
-        self.announce(f'Generating schema to {outdir} (editable_mode={self.editable_mode})', level=3)
+        outdir = 'ismrmrd/xsd/'
+        self.announce(f'Generating schema to {outdir}', level=3)
         self.generate_schema(schema_file, config_file, 'ismrmrdschema', outdir)
 
     def get_source_files(self):
@@ -42,14 +41,14 @@ class GenerateSchemaCommand(Command):
 
     def get_outputs(self):
         return [
-            "{build_lib}/ismrmrd/xsd/ismrmrdschema/__init__.py",
-            "{build_lib}/ismrmrd/xsd/ismrmrdschema/ismrmrd.py"
+            "ismrmrd/xsd/ismrmrdschema/__init__.py",
+            "ismrmrd/xsd/ismrmrdschema/ismrmrd.py"
         ]
 
-    def fix_init_file(self, package_name,filepath):
+    def fix_init_file(self, package_name, filepath):
         with open(filepath,'r+') as f:
             text = f.read()
-            text = re.sub(f'from {package_name}.ismrmrd', 'from .ismrmrd',text)
+            text = re.sub(f'from {package_name}.ismrmrd', 'from .ismrmrd', text)
             f.seek(0)
             f.write(text)
             f.truncate()
@@ -57,16 +56,15 @@ class GenerateSchemaCommand(Command):
     def generate_schema(self, schema_filename, config_filename, subpackage_name, outdir):
         import sys
         import subprocess
-        # subpackage_name = 'ismrmrdschema'
         args = [sys.executable, '-m', 'xsdata', 'generate', str(schema_filename), '--config', str(config_filename), '--package', subpackage_name]
-        subprocess.run(args)
+        subprocess.run(args, check=True)
         self.fix_init_file(subpackage_name, f"{subpackage_name}/__init__.py")
         destination = os.path.join(outdir, subpackage_name)
         shutil.rmtree(destination, ignore_errors=True)
         shutil.move(subpackage_name, destination)
 
 setup(
-    version='1.14.3',
+    version='1.15.0',
     packages=find_packages(),
     cmdclass={
         'generate_schema': GenerateSchemaCommand
