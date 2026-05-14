@@ -28,4 +28,4 @@ Documentation = "https://github.com/ismrmrd/ismrmrd-python"
 Repository = "https://github.com/ismrmrd/ismrmrd-python"
 
 [project.optional-dependencies]
-dev = ["pytest", "build", "setuptools>=78", "xsdata[cli]==26.1"]
+dev = ["pytest", "build", "setuptools>=78", "xsdata[cli]==26.2"]
