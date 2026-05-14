@@ -144,12 +144,34 @@ def fileinfo(fname):
 
 
 class Dataset(object):
-    def __init__(self, filename, dataset_name="dataset", create_if_needed=True):
+    def __init__(self, filename, dataset_name="dataset", create_if_needed=True, mode=None):
+        """Open an ISMRMRD Dataset backed by an HDF5 file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the HDF5 file.
+        dataset_name : str, optional
+            Name of the dataset group inside the file.
+        create_if_needed : bool, optional
+            When True (default) the file is opened in append mode ('a'),
+            creating it if it does not exist.  When False the file must
+            already exist and is opened in read/write mode ('r+').
+        mode : str, optional
+            Explicit h5py file-open mode.  When provided, overrides the
+            behaviour implied by *create_if_needed*.  Valid values are the
+            same as for :func:`h5py.File`: ``'r'``, ``'r+'``, ``'w'``,
+            ``'w-'``/``'x'``, and ``'a'``.  See
+            https://docs.h5py.org/en/stable/high/file.html for details.
+        """
         # Open the file
-        if create_if_needed:
-            self._file = h5py.File(filename, 'a')
-        else:
-            self._file = h5py.File(filename, 'r+')
+        if mode is None:
+            if create_if_needed:
+                mode = 'a'
+            else:
+                mode = 'r+'
+
+        self._file = h5py.File(filename, mode)
 
         self._dataset_name = dataset_name
 
