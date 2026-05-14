@@ -42,6 +42,9 @@
 - `requirements.txt` removed; dev setup: `pip install -e ".[dev]"`.
 - Python version matrix added to CI (3.10, 3.11, 3.12, 3.13).
 - `dependabot.yml` added for monthly pip and GitHub Actions updates.
+- Bumped xsdata to 26.2 (`>=26.2` runtime, `==26.2` dev/codegen pin); regenerated
+  schema code (xsdata 26.2 no longer emits redundant `"required": True` in field
+  metadata — no behavioral change for this library).
 
 ## v1.14.2
 
