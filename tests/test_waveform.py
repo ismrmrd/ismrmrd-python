@@ -51,6 +51,20 @@ def test_initialization_with_illegal_header_value():
         ismrmrd.Waveform.from_array(common.create_random_waveform_data(), version='Bad version')
 
 
+def test_from_array_raises_on_too_many_samples():
+    uint16_max = np.iinfo(np.uint16).max
+    data = np.zeros((1, uint16_max + 1), dtype=np.uint32)
+    with pytest.raises(ValueError):
+        ismrmrd.Waveform.from_array(data)
+
+
+def test_from_array_raises_on_too_many_channels():
+    uint16_max = np.iinfo(np.uint16).max
+    data = np.zeros((uint16_max + 1, 1), dtype=np.uint32)
+    with pytest.raises(ValueError):
+        ismrmrd.Waveform.from_array(data)
+
+
 def test_serialize_and_deserialize():
     waveform = common.create_random_waveform()
 

@@ -68,6 +68,7 @@ IMTYPE_PHASE     = 2
 IMTYPE_REAL      = 3
 IMTYPE_IMAG      = 4
 IMTYPE_COMPLEX   = 5
+IMTYPE_RGB       = 6
 
 # Image flags
 IMAGE_IS_NAVIGATION_DATA  =  1
