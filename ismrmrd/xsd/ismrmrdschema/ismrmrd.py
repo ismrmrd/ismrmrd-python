@@ -14,14 +14,12 @@ class accelerationFactorType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     kspace_encoding_step_2: int = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -40,14 +38,12 @@ class coilLabelType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     coilName: str = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -75,7 +71,6 @@ class experimentalConditionsType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -89,21 +84,18 @@ class fieldOfViewMm:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     y: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     z: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -114,21 +106,18 @@ class gradientDirectionType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     ap: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     fh: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -148,7 +137,6 @@ class limitType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         },
     )
     maximum: int = field(
@@ -156,7 +144,6 @@ class limitType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         },
     )
     center: int = field(
@@ -164,7 +151,6 @@ class limitType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         },
     )
 
@@ -176,7 +162,6 @@ class matrixSizeType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         },
     )
     y: int = field(
@@ -184,7 +169,6 @@ class matrixSizeType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         },
     )
     z: int = field(
@@ -192,7 +176,6 @@ class matrixSizeType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         },
     )
 
@@ -203,14 +186,12 @@ class measurementDependencyType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     measurementID: str = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -368,21 +349,18 @@ class threeDimensionalFloat:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     y: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     z: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -402,14 +380,12 @@ class userParameterBase64Type:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     value: bytes = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
             "format": "base64",
         }
     )
@@ -421,14 +397,12 @@ class userParameterDoubleType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     value: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -439,14 +413,12 @@ class userParameterLongType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     value: int = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -457,14 +429,12 @@ class userParameterStringType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     value: str = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -558,14 +528,12 @@ class diffusionType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     bvalue: float = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -706,14 +674,12 @@ class encodingSpaceType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     fieldOfView_mm: fieldOfViewMm = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -745,7 +711,6 @@ class measurementInformationType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     relativeTablePosition: None | threeDimensionalFloat = field(
@@ -827,28 +792,24 @@ class multibandType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     multiband_factor: int = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     calibration: multibandCalibrationType = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     calibration_encoding: int = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -859,7 +820,6 @@ class trajectoryDescriptionType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     userParameterLong: list[userParameterLongType] = field(
@@ -930,7 +890,6 @@ class parallelImagingType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     calibrationMode: None | calibrationModeType = field(
@@ -1029,21 +988,18 @@ class waveformInformationType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     waveformType: waveformInformationTypeWaveformType = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     userParameters: userParametersType = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
 
@@ -1054,28 +1010,24 @@ class encodingType:
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     reconSpace: encodingSpaceType = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     encodingLimits: encodingLimitsType = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     trajectory: trajectoryType = field(
         metadata={
             "type": "Element",
             "namespace": "http://www.ismrm.org/ISMRMRD",
-            "required": True,
         }
     )
     trajectoryDescription: None | trajectoryDescriptionType = field(
@@ -1141,7 +1093,6 @@ class ismrmrdHeader:
     experimentalConditions: experimentalConditionsType = field(
         metadata={
             "type": "Element",
-            "required": True,
         }
     )
     encoding: list[encodingType] = field(
