@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: conda-incubator/setup-miniconda@v4
         with:
           miniforge-version: latest
           activate-environment: ismrmrd-python-build
