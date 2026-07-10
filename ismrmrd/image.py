@@ -44,6 +44,7 @@ def get_data_type_from_dtype(dtype):
 # Image Header
 class ImageHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 2
+    _layout_ = "ms"
     _fields_ = [("version", ctypes.c_uint16),
                 ("data_type", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),

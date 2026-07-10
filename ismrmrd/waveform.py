@@ -9,6 +9,7 @@ from . import decorators
 
 class WaveformHeader(FlagsMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 8
+    _layout_ = "ms"
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
                 ("measurement_uid", ctypes.c_uint32),

@@ -11,6 +11,7 @@ from . import decorators
 
 class EncodingCounters(EqualityMixin, ctypes.Structure):
     _pack_ = 2
+    _layout_ = "ms"
     _fields_ = [("kspace_encode_step_1", ctypes.c_uint16),
                 ("kspace_encode_step_2", ctypes.c_uint16),
                 ("average", ctypes.c_uint16),
@@ -35,6 +36,7 @@ class EncodingCounters(EqualityMixin, ctypes.Structure):
 
 class AcquisitionHeader(FlagsMixin, ChannelMaskMixin, EqualityMixin, ctypes.Structure):
     _pack_ = 2
+    _layout_ = "ms"
     _fields_ = [("version", ctypes.c_uint16),
                 ("flags", ctypes.c_uint64),
                 ("measurement_uid", ctypes.c_uint32),
