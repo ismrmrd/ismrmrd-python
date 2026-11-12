@@ -170,3 +170,11 @@ def test_header_data_type_sets_dtype(data_type, dtype):
     image = ismrmrd.Image(head)
     assert image.data.dtype == dtype
 
+
+@pytest.mark.parametrize('dtype', [np.int64, np.uint64, np.int8, np.float16])
+def test_unsupported_dtype_raises(dtype):
+    image_data = np.arange(6, dtype=dtype).reshape(1, 2, 3)
+    with pytest.raises(TypeError, match='int32'):
+        ismrmrd.Image.from_array(image_data)
+    with pytest.raises(TypeError, match='int32'):
+        ismrmrd.Image(data=image_data)
