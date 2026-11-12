@@ -136,3 +136,45 @@ def test_serialization_with_header_fields():
 def test_serialization_from_too_few_bytes():
     with pytest.raises(ValueError):
         ismrmrd.Image.from_bytes(b'')
+
+
+mrd_image_data_types = [
+    (ismrmrd.DATATYPE_USHORT, np.uint16),
+    (ismrmrd.DATATYPE_SHORT, np.int16),
+    (ismrmrd.DATATYPE_UINT, np.uint32),
+    (ismrmrd.DATATYPE_INT, np.int32),
+    (ismrmrd.DATATYPE_FLOAT, np.float32),
+    (ismrmrd.DATATYPE_DOUBLE, np.float64),
+    (ismrmrd.DATATYPE_CXFLOAT, np.complex64),
+    (ismrmrd.DATATYPE_CXDOUBLE, np.complex128),
+]
+
+
+@pytest.mark.parametrize('data_type, dtype', mrd_image_data_types)
+def test_from_array_sets_data_type(data_type, dtype):
+    image_data = np.arange(6, dtype=dtype).reshape(1, 2, 3)
+    image = ismrmrd.Image.from_array(image_data)
+    assert image.data_type == data_type
+    assert image.data.dtype == dtype
+    assert np.array_equal(image_data, image.data.squeeze(axis=0))
+
+
+@pytest.mark.parametrize('data_type, dtype', mrd_image_data_types)
+def test_header_data_type_sets_dtype(data_type, dtype):
+    head = ismrmrd.ImageHeader()
+    head.data_type = data_type
+    head.channels = 1
+    head.matrix_size[0] = 3
+    head.matrix_size[1] = 2
+    head.matrix_size[2] = 1
+    image = ismrmrd.Image(head)
+    assert image.data.dtype == dtype
+
+
+@pytest.mark.parametrize('dtype', [np.int64, np.uint64, np.int8, np.float16])
+def test_unsupported_dtype_raises(dtype):
+    image_data = np.arange(6, dtype=dtype).reshape(1, 2, 3)
+    with pytest.raises(TypeError, match='int32'):
+        ismrmrd.Image.from_array(image_data)
+    with pytest.raises(TypeError, match='int32'):
+        ismrmrd.Image(data=image_data)

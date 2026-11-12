@@ -18,7 +18,7 @@ dtype_mapping = {
     DATATYPE_USHORT: np.dtype('uint16'),
     DATATYPE_SHORT: np.dtype('int16'),
     DATATYPE_UINT: np.dtype('uint32'),
-    DATATYPE_INT: np.dtype('int'),
+    DATATYPE_INT: np.dtype('int32'),
     DATATYPE_FLOAT: np.dtype('float32'),
     DATATYPE_DOUBLE: np.dtype('float64'),
     DATATYPE_CXFLOAT: np.dtype('complex64'),
@@ -37,7 +37,9 @@ def get_dtype_from_data_type(val):
 def get_data_type_from_dtype(dtype):
     type = inverse_dtype_mapping.get(dtype)
     if type is None:
-        raise TypeError("Datatype not supported: " + str(dtype))
+        supported = ", ".join(str(d) for d in dtype_mapping.values())
+        raise TypeError("Datatype not supported: " + str(dtype) +
+                        ". ISMRMRD images support: " + supported)
     return type
 
 
@@ -250,7 +252,7 @@ class Image(FlagsMixin):
         def create_consistent_header(header, data):
 
             if data is not None:
-                header.data_type = inverse_dtype_mapping[data.dtype]
+                header.data_type = get_data_type_from_dtype(data.dtype)
                 header.channels = data.shape[0]
                 header.matrix_size = (data.shape[3], data.shape[2], data.shape[1])
 

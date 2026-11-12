@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- Images of type `DATATYPE_INT` now use `int32`, as the ISMRMRD format
+  defines, instead of the platform `int` (`int64` on Linux and macOS).
+  `int32` arrays were refused by `Image.from_array()`, `int64` arrays were
+  labelled `DATATYPE_INT` and then failed in `Dataset.append_image()`, and
+  `DATATYPE_INT` images were read back as `int64`.
+- `Image.from_array()` and `Image(data=...)` now raise a `TypeError` that
+  lists the supported dtypes when given an array type that ISMRMRD images do
+  not define, such as `int64`. `Image(data=...)` used to raise a bare
+  `KeyError`.
+
 ## v1.15.0 (unreleased)
 
 ### Breaking changes
