@@ -80,6 +80,28 @@ def test_read_and_write_images_to_hdf5():
         compare_images(img_a, img_b)
 
 
+@pytest.mark.parametrize('dtype', [np.uint16, np.int16, np.uint32, np.int32,
+                                   np.float32, np.float64,
+                                   np.complex64, np.complex128])
+def test_read_and_write_image_data_types_to_hdf5(dtype):
+    filename = os.path.join(temp_dir, 'read_write_image_data_types.h5')
+
+    image_data = np.arange(24, dtype=dtype).reshape(2, 3, 4)
+    image = ismrmrd.Image.from_array(image_data)
+
+    dataset = ismrmrd.Dataset(filename)
+    dataset.append_image('images', image)
+    dataset.close()
+
+    dataset = ismrmrd.Dataset(filename)
+    read_image = dataset.read_image('images', 0)
+    dataset.close()
+
+    assert read_image.data_type == image.data_type
+    assert read_image.data.dtype == dtype
+    assert np.array_equal(read_image.data.squeeze(axis=0), image_data)
+
+
 def test_read_and_write_waveforms_to_hdf5():
     filename = os.path.join(temp_dir, 'read_write_waveforms.h5')
 

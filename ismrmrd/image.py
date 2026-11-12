@@ -18,7 +18,7 @@ dtype_mapping = {
     DATATYPE_USHORT: np.dtype('uint16'),
     DATATYPE_SHORT: np.dtype('int16'),
     DATATYPE_UINT: np.dtype('uint32'),
-    DATATYPE_INT: np.dtype('int'),
+    DATATYPE_INT: np.dtype('int32'),
     DATATYPE_FLOAT: np.dtype('float32'),
     DATATYPE_DOUBLE: np.dtype('float64'),
     DATATYPE_CXFLOAT: np.dtype('complex64'),
